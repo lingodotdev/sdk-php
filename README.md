@@ -10,6 +10,29 @@ You can install the SDK via Composer:
 composer require lingodotdev/sdk
 ```
 
+## Basic Usage
+
+After installing the package, bootstrap the engine with your API key:
+
+```php
+require 'vendor/autoload.php';
+
+use LingoDotDev\Sdk\LingoDotDevEngine;
+
+$engine = new LingoDotDevEngine([
+    'apiKey' => 'your-api-key', // replace with your actual key
+]);
+```
+
+### Scenarios demonstrated in this README
+
+1. Text Localization
+2. Object Localization
+3. Chat Localization
+4. Batch Localization
+5. Language Detection
+6. Progress Tracking
+
 ## Requirements
 
 - PHP 8.1 or higher
@@ -24,67 +47,25 @@ composer require lingodotdev/sdk
 Follow these steps to create a new PHP project that uses the Lingo.dev SDK:
 
 1. **Create a project directory**:
+
    ```bash
    mkdir my-lingo-project
    cd my-lingo-project
    ```
 
 2. **Initialize Composer**:
+
    ```bash
    composer init --name=your-vendor/your-project --description="Your project description" --type=project --require="php:^8.1" --author="Your Name <your.email@example.com>"
    ```
 
 3. **Add Lingo.dev SDK as a dependency**:
+
    ```bash
    composer require lingodotdev/sdk
    ```
 
-4. **Create a simple PHP script** (index.php):
-   ```php
-   <?php
-   
-   require 'vendor/autoload.php';
-   
-   use LingoDotDev\Sdk\LingoDotDevEngine;
-   
-   // Get API key from environment variable or command line
-   $apiKey = getenv('LINGODOTDEV_API_KEY') ?: $argv[1] ?? null;
-   
-   if (!$apiKey) {
-       echo "Error: API key is required. Set LINGODOTDEV_API_KEY environment variable or pass it as a command-line argument.\n";
-       exit(1);
-   }
-   
-   // Initialize the SDK
-   $engine = new LingoDotDevEngine([
-       'apiKey' => $apiKey,
-   ]);
-   
-   // Make your first localization call
-   try {
-       $result = $engine->localizeText('Hello, this is my first localization with Lingo.dev!', [
-           'sourceLocale' => 'en',
-           'targetLocale' => 'es',
-       ]);
-       
-       echo "Original: Hello, this is my first localization with Lingo.dev!\n";
-       echo "Translated to Spanish: $result\n";
-   } catch (\Exception $e) {
-       echo "Error: " . $e->getMessage() . "\n";
-   }
-   ```
-
-5. **Run your script**:
-   ```bash
-   # Option 1: Pass API key as command-line argument
-   php index.php your-api-key-here
-   
-   # Option 2: Set environment variable and run
-   export LINGODOTDEV_API_KEY=your-api-key-here
-   php index.php
-   ```
-
-## Basic Usage
+## API Scenarios
 
 ### Initialize the SDK
 
@@ -207,6 +188,67 @@ $engine->localizeText('Hello, world!', [
     echo "Localization progress: $progress%\n";
 });
 ```
+
+## Demo App
+
+If you prefer to start with a minimal example instead of the detailed scenarios above, create **index.php** in an empty folder, copy the following snippet, install dependencies with `composer require lingodotdev/sdk`, set `LINGODOTDEV_API_KEY`, and run `php index.php`.
+
+Want to see everything in action?
+
+1. Clone this repository or copy the `index.php` from the **demo** below into an empty directory.
+2. Run `composer install` to pull in the SDK.
+3. Populate the `LINGODOTDEV_API_KEY` environment variable with your key.
+4. Execute the script with `php index.php` and observe the output.
+
+`index.php` demo:
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+use LingoDotDev\Sdk\LingoDotDevEngine;
+
+$engine = new LingoDotDevEngine([
+    'apiKey' => getenv('LINGODOTDEV_API_KEY'),
+]);
+
+// 1. Text
+$helloEs = $engine->localizeText('Hello world!', [
+    'sourceLocale' => 'en',
+    'targetLocale' => 'es',
+]);
+
+echo "Text ES ⇒ $helloEs\n\n";
+
+// 2. Object
+$object = [
+    'greeting' => 'Good morning',
+    'farewell' => 'Good night',
+];
+$objectFr = $engine->localizeObject($object, [
+    'sourceLocale' => 'en',
+    'targetLocale' => 'fr',
+]);
+print_r($objectFr);
+
+// 3. Chat
+$chatJa = $engine->localizeChat([
+    ['name' => 'Alice', 'text' => 'Hi'],
+    ['name' => 'Bob', 'text' => 'Hello!'],
+], [
+    'sourceLocale' => 'en',
+    'targetLocale' => 'ja',
+]);
+print_r($chatJa);
+
+// 4. Detect language
+$lang = $engine->recognizeLocale('Ciao mondo');
+
+echo "Detected: $lang\n";
+```
+
+---
 
 ## Release Process
 
