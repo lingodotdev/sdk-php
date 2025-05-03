@@ -312,7 +312,7 @@ class LingoDotDevEngineTest extends TestCase
         $requestBody = json_decode($request->getBody()->getContents(), true);
         
         $this->assertArrayHasKey('reference', $requestBody);
-        $this->assertEquals(new \stdClass(), $requestBody['reference']);
+        $this->assertEquals([], $requestBody['reference']);
         
         $this->assertArrayHasKey('params', $requestBody);
         $this->assertArrayHasKey('locale', $requestBody);
