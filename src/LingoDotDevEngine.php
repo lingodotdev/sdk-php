@@ -152,28 +152,30 @@ class LingoDotDevEngine
     private function _localizeChunk(?string $sourceLocale, string $targetLocale, array $payload, string $workflowId, bool $fast): array
     {
         try {
-            $reference = null;
+            $requestBody = [
+                'params' => [
+                    'workflowId' => $workflowId,
+                    'fast' => $fast
+                ],
+                'locale' => [
+                    'source' => $sourceLocale,
+                    'target' => $targetLocale
+                ],
+                'data' => $payload['data']
+            ];
+            
             if (isset($payload['reference']) && $payload['reference'] !== null) {
                 if (!is_array($payload['reference'])) {
                     throw new \InvalidArgumentException('Reference must be an array');
                 }
-                $reference = $payload['reference'];
+                $requestBody['reference'] = $payload['reference'];
+            } else {
+                $requestBody['reference'] = (object)[];
             }
             
             $response = $this->_httpClient->post(
                 '/i18n', [
-                'json' => [
-                    'params' => [
-                        'workflowId' => $workflowId,
-                        'fast' => $fast
-                    ],
-                    'locale' => [
-                        'source' => $sourceLocale,
-                        'target' => $targetLocale
-                    ],
-                    'data' => $payload['data'],
-                    'reference' => $reference
-                ]
+                'json' => $requestBody
                 ]
             );
 
@@ -384,25 +386,21 @@ class LingoDotDevEngine
             }
         }
 
-        $payload = [];
-        foreach ($chat as $index => $message) {
-            $payload["chat_{$index}"] = $message['text'];
-        }
-
-        $localized = $this->localizeRaw($payload, $params, function($progress, $chunk, $processedChunk) use ($progressCallback) {
+        $localized = $this->localizeRaw(['chat' => $chat], $params, function($progress, $chunk, $processedChunk) use ($progressCallback) {
             if ($progressCallback) {
                 $progressCallback($progress);
             }
         });
 
         $result = [];
-        foreach ($localized as $key => $value) {
-            if (strpos($key, 'chat_') === 0) {
-                $index = (int)explode('_', $key)[1];
-                $result[] = [
-                    'name' => $chat[$index]['name'],
-                    'text' => $value
-                ];
+        if (isset($localized['chat']) && is_array($localized['chat'])) {
+            foreach ($localized['chat'] as $index => $message) {
+                if (isset($chat[$index]['name']) && isset($message['text'])) {
+                    $result[] = [
+                        'name' => $chat[$index]['name'],
+                        'text' => $message['text']
+                    ];
+                }
             }
         }
 
