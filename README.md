@@ -17,6 +17,73 @@ composer require lingodotdev/sdk
 - GuzzleHttp Client
 - Respect Validation
 
+## Getting Started
+
+### Creating a New PHP Project with Lingo.dev SDK
+
+Follow these steps to create a new PHP project that uses the Lingo.dev SDK:
+
+1. **Create a project directory**:
+   ```bash
+   mkdir my-lingo-project
+   cd my-lingo-project
+   ```
+
+2. **Initialize Composer**:
+   ```bash
+   composer init --name=your-vendor/your-project --description="Your project description" --type=project --require="php:^8.1" --author="Your Name <your.email@example.com>"
+   ```
+
+3. **Add Lingo.dev SDK as a dependency**:
+   ```bash
+   composer require lingodotdev/sdk
+   ```
+
+4. **Create a simple PHP script** (index.php):
+   ```php
+   <?php
+   
+   require 'vendor/autoload.php';
+   
+   use LingoDotDev\Sdk\LingoDotDevEngine;
+   
+   // Get API key from environment variable or command line
+   $apiKey = getenv('LINGODOTDEV_API_KEY') ?: $argv[1] ?? null;
+   
+   if (!$apiKey) {
+       echo "Error: API key is required. Set LINGODOTDEV_API_KEY environment variable or pass it as a command-line argument.\n";
+       exit(1);
+   }
+   
+   // Initialize the SDK
+   $engine = new LingoDotDevEngine([
+       'apiKey' => $apiKey,
+   ]);
+   
+   // Make your first localization call
+   try {
+       $result = $engine->localizeText('Hello, this is my first localization with Lingo.dev!', [
+           'sourceLocale' => 'en',
+           'targetLocale' => 'es',
+       ]);
+       
+       echo "Original: Hello, this is my first localization with Lingo.dev!\n";
+       echo "Translated to Spanish: $result\n";
+   } catch (\Exception $e) {
+       echo "Error: " . $e->getMessage() . "\n";
+   }
+   ```
+
+5. **Run your script**:
+   ```bash
+   # Option 1: Pass API key as command-line argument
+   php index.php your-api-key-here
+   
+   # Option 2: Set environment variable and run
+   export LINGODOTDEV_API_KEY=your-api-key-here
+   php index.php
+   ```
+
 ## Basic Usage
 
 ### Initialize the SDK
@@ -141,19 +208,6 @@ $engine->localizeText('Hello, world!', [
 });
 ```
 
-## Advanced Configuration
-
-You can customize the SDK behavior with additional configuration options:
-
-```php
-$engine = new LingoDotDevEngine([
-    'apiKey' => 'your-api-key',
-    'apiUrl' => 'https://custom-engine.lingo.dev', // Custom API URL
-    'batchSize' => 50,                            // Custom batch size (1-250)
-    'idealBatchItemSize' => 500                   // Custom batch item size (1-2500)
-]);
-```
-
 ## Release Process
 
 The SDK uses semantic versioning (MAJOR.MINOR.PATCH) and is automatically published to Packagist when changes are merged to the main branch. The release process includes:
@@ -161,7 +215,6 @@ The SDK uses semantic versioning (MAJOR.MINOR.PATCH) and is automatically publis
 1. Running tests to ensure code quality
 2. Automatically bumping the patch version
 3. Creating a git tag for the new version
-4. Publishing the package to Packagist
 
 Packagist automatically fetches new versions from the GitHub repository when tags are pushed, making the new version immediately available for installation via Composer.
 
