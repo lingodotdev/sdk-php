@@ -213,10 +213,11 @@ $engine->localizeText('Hello, world!', [
 The SDK uses semantic versioning (MAJOR.MINOR.PATCH) and is automatically published to Packagist when changes are merged to the main branch. The release process includes:
 
 1. Running tests to ensure code quality
-2. Automatically bumping the patch version
-3. Creating a git tag for the new version
+2. Detecting the current version from git tags
+3. Automatically bumping the patch version
+4. Creating a new git tag for the new version
 
-Packagist automatically fetches new versions from the GitHub repository when tags are pushed, making the new version immediately available for installation via Composer.
+Packagist automatically fetches new versions from the GitHub repository when tags are pushed, making the new version immediately available for installation via Composer. The version is determined by git tags rather than being stored in composer.json, following Packagist best practices.
 
 ## Documentation
 
