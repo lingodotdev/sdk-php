@@ -10,11 +10,13 @@ permissions:
   contents: write
 
 jobs:
-  test:
+  test-and-publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -33,26 +35,10 @@ jobs:
       - name: Run tests
         run: vendor/bin/phpunit tests/
 
-  publish:
-    needs: test
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          extensions: mbstring, intl
-          coverage: none
-          tools: composer:v2
-
+      # Only proceed with version bump and publishing if on main branch and tests passed
       - name: Get current version
         id: current_version
+        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
         run: |
           # Check if version exists in composer.json
           VERSION=$(php -r '
@@ -69,6 +55,7 @@ jobs:
 
       - name: Bump patch version
         id: bump_version
+        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
         run: |
           # Get current version
           CURRENT_VERSION=${{ steps.current_version.outputs.version }}
@@ -101,6 +88,7 @@ jobs:
 
       - name: Commit and push version bump
         uses: stefanzweifel/git-auto-commit-action@v4
+        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
         with:
           commit_message: "chore: bump PHP SDK version to ${{ steps.bump_version.outputs.new_version }}"
           file_pattern: composer.json
@@ -108,11 +96,13 @@ jobs:
           commit_user_email: "hi@lingo.dev"
 
       - name: Create tag for release
+        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
         run: |
           git tag v${{ steps.bump_version.outputs.new_version }}
           git push origin v${{ steps.bump_version.outputs.new_version }}
 
       - name: Publish to Packagist
+        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
         run: |
           php scripts/packagist-publish.php
         env:
