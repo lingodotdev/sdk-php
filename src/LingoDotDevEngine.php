@@ -384,25 +384,21 @@ class LingoDotDevEngine
             }
         }
 
-        $payload = [];
-        foreach ($chat as $index => $message) {
-            $payload["chat_{$index}"] = $message['text'];
-        }
-
-        $localized = $this->localizeRaw($payload, $params, function($progress, $chunk, $processedChunk) use ($progressCallback) {
+        $localized = $this->localizeRaw(['chat' => $chat], $params, function($progress, $chunk, $processedChunk) use ($progressCallback) {
             if ($progressCallback) {
                 $progressCallback($progress);
             }
         });
 
         $result = [];
-        foreach ($localized as $key => $value) {
-            if (strpos($key, 'chat_') === 0) {
-                $index = (int)explode('_', $key)[1];
-                $result[] = [
-                    'name' => $chat[$index]['name'],
-                    'text' => $value
-                ];
+        if (isset($localized['chat']) && is_array($localized['chat'])) {
+            foreach ($localized['chat'] as $index => $message) {
+                if (isset($chat[$index]['name']) && isset($message['text'])) {
+                    $result[] = [
+                        'name' => $chat[$index]['name'],
+                        'text' => $message['text']
+                    ];
+                }
             }
         }
 
