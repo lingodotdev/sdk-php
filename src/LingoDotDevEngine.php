@@ -94,10 +94,18 @@ class LingoDotDevEngine
      * @return   array Localized content
      * @internal
      */
-    protected function localizeRaw(array $payload, array $params, callable $progressCallback = null): array
+    protected function localizeRaw(array $payload, array $params, ?callable $progressCallback = null): array
     {
         if (!isset($params['targetLocale'])) {
             throw new \InvalidArgumentException('Target locale is required');
+        }
+
+        if (isset($params['sourceLocale']) && !is_string($params['sourceLocale']) && $params['sourceLocale'] !== null) {
+            throw new \InvalidArgumentException('Source locale must be a string or null');
+        }
+
+        if (!is_string($params['targetLocale'])) {
+            throw new \InvalidArgumentException('Target locale must be a string');
         }
 
         $chunkedPayload = $this->_extractPayloadChunks($payload);
@@ -112,7 +120,10 @@ class LingoDotDevEngine
             $processedPayloadChunk = $this->_localizeChunk(
                 $params['sourceLocale'] ?? null,
                 $params['targetLocale'],
-                ['data' => $chunk, 'reference' => $params['reference'] ?? null],
+                [
+                    'data' => $chunk, 
+                    'reference' => $params['reference'] ?? null
+                ],
                 $workflowId,
                 $params['fast'] ?? false
             );
@@ -141,6 +152,14 @@ class LingoDotDevEngine
     private function _localizeChunk(?string $sourceLocale, string $targetLocale, array $payload, string $workflowId, bool $fast): array
     {
         try {
+            $reference = null;
+            if (isset($payload['reference']) && $payload['reference'] !== null) {
+                if (!is_array($payload['reference'])) {
+                    throw new \InvalidArgumentException('Reference must be an array');
+                }
+                $reference = $payload['reference'];
+            }
+            
             $response = $this->_httpClient->post(
                 '/i18n', [
                 'json' => [
@@ -153,7 +172,7 @@ class LingoDotDevEngine
                         'target' => $targetLocale
                     ],
                     'data' => $payload['data'],
-                    'reference' => $payload['reference']
+                    'reference' => $reference
                 ]
                 ]
             );
@@ -166,8 +185,17 @@ class LingoDotDevEngine
 
             return $jsonResponse['data'] ?? [];
         } catch (RequestException $e) {
-            if ($e->getResponse() && $e->getResponse()->getStatusCode() === 400) {
-                throw new \InvalidArgumentException('Invalid request: ' . $e->getMessage());
+            if ($e->hasResponse()) {
+                $statusCode = $e->getResponse()->getStatusCode();
+                $responseBody = $e->getResponse()->getBody()->getContents();
+                
+                if ($statusCode === 400) {
+                    throw new \InvalidArgumentException('Invalid request: ' . $e->getMessage());
+                } else {
+                    $errorData = json_decode($responseBody, true);
+                    $errorMessage = isset($errorData['message']) ? $errorData['message'] : $e->getMessage();
+                    throw new \RuntimeException($errorMessage);
+                }
             }
             throw new \RuntimeException($e->getMessage());
         }
@@ -261,9 +289,17 @@ class LingoDotDevEngine
      * 
      * @return array A new object with the same structure but localized string values
      */
-    public function localizeObject(array $obj, array $params, callable $progressCallback = null): array
+    public function localizeObject(array $obj, array $params, ?callable $progressCallback = null): array
     {
-        return $this->localizeRaw($obj, $params, $progressCallback);
+        if (!isset($params['targetLocale'])) {
+            throw new \InvalidArgumentException('Target locale is required');
+        }
+        
+        return $this->localizeRaw($obj, $params, function($progress, $chunk, $processedChunk) use ($progressCallback) {
+            if ($progressCallback) {
+                $progressCallback($progress, $chunk, $processedChunk);
+            }
+        });
     }
 
     /**
@@ -278,9 +314,18 @@ class LingoDotDevEngine
      * 
      * @return string The localized text string
      */
-    public function localizeText(string $text, array $params, callable $progressCallback = null): string
+    public function localizeText(string $text, array $params, ?callable $progressCallback = null): string
     {
-        $response = $this->localizeRaw(['text' => $text], $params, $progressCallback);
+        if (!isset($params['targetLocale'])) {
+            throw new \InvalidArgumentException('Target locale is required');
+        }
+        
+        $response = $this->localizeRaw(['text' => $text], $params, function($progress, $chunk, $processedChunk) use ($progressCallback) {
+            if ($progressCallback) {
+                $progressCallback($progress);
+            }
+        });
+        
         return $response['text'] ?? '';
     }
 
@@ -331,25 +376,34 @@ class LingoDotDevEngine
      * 
      * @return array Array of localized chat messages with preserved structure
      */
-    public function localizeChat(array $chat, array $params, callable $progressCallback = null): array
+    public function localizeChat(array $chat, array $params, ?callable $progressCallback = null): array
     {
-        $payload = [];
-        foreach ($chat as $index => $message) {
+        foreach ($chat as $message) {
             if (!isset($message['name']) || !isset($message['text'])) {
                 throw new \InvalidArgumentException('Each chat message must have name and text properties');
             }
+        }
+
+        $payload = [];
+        foreach ($chat as $index => $message) {
             $payload["chat_{$index}"] = $message['text'];
         }
 
-        $localized = $this->localizeRaw($payload, $params, $progressCallback);
+        $localized = $this->localizeRaw($payload, $params, function($progress, $chunk, $processedChunk) use ($progressCallback) {
+            if ($progressCallback) {
+                $progressCallback($progress);
+            }
+        });
 
         $result = [];
         foreach ($localized as $key => $value) {
-            $index = (int)explode('_', $key)[1];
-            $result[] = [
-                'name' => $chat[$index]['name'],
-                'text' => $value
-            ];
+            if (strpos($key, 'chat_') === 0) {
+                $index = (int)explode('_', $key)[1];
+                $result[] = [
+                    'name' => $chat[$index]['name'],
+                    'text' => $value
+                ];
+            }
         }
 
         return $result;
@@ -364,6 +418,10 @@ class LingoDotDevEngine
      */
     public function recognizeLocale(string $text): string
     {
+        if (empty(trim($text))) {
+            throw new \InvalidArgumentException('Text cannot be empty');
+        }
+        
         try {
             $response = $this->_httpClient->post(
                 '/recognize', [
@@ -372,8 +430,20 @@ class LingoDotDevEngine
             );
 
             $jsonResponse = json_decode($response->getBody()->getContents(), true);
+            
+            if (!isset($jsonResponse['locale'])) {
+                throw new \RuntimeException('Invalid response from API: locale not found');
+            }
+            
             return $jsonResponse['locale'];
         } catch (RequestException $e) {
+            if ($e->hasResponse()) {
+                $statusCode = $e->getResponse()->getStatusCode();
+                $responseBody = $e->getResponse()->getBody()->getContents();
+                $errorData = json_decode($responseBody, true);
+                $errorMessage = isset($errorData['message']) ? $errorData['message'] : $e->getMessage();
+                throw new \RuntimeException('Error recognizing locale: ' . $errorMessage);
+            }
             throw new \RuntimeException('Error recognizing locale: ' . $e->getMessage());
         }
     }
