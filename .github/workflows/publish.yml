@@ -89,3 +89,11 @@ jobs:
         run: |
           git tag v${{ steps.bump_version.outputs.new_version }}
           git push origin v${{ steps.bump_version.outputs.new_version }}
+          
+      - name: Ping Packagist
+        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        run: |
+          echo "Pinging Packagist to update package..."
+          curl -XPOST -H'content-type:application/json' \
+            "https://packagist.org/api/update-package?username=lingodotdev&apiToken=${{ secrets.PACKAGIST_SAFE_API_TOKEN }}" \
+            -d'{"repository":{"url":"https://github.com/lingodotdev/sdk-php"}}'
