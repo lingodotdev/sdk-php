@@ -3,7 +3,6 @@
     "description": "Official PHP SDK for Lingo.dev",
     "type": "library",
     "license": "MIT",
-    "version": "0.1.2",
     "authors": [
         {
             "name": "Lingo.dev Team",
