@@ -193,8 +193,10 @@ class LingoDotDevEngineTest extends TestCase
                 200, [], json_encode(
                     [
                     'data' => [
-                    'chat_0' => '¡Hola, cómo estás?',
-                    'chat_1' => '¡Estoy bien, gracias!'
+                        'chat' => [
+                            ['text' => '¡Hola, cómo estás?'],
+                            ['text' => '¡Estoy bien, gracias!']
+                        ]
                     ]
                     ]
                 )
@@ -271,6 +273,53 @@ class LingoDotDevEngineTest extends TestCase
             'targetLocale' => 'es'
             ]
         );
+    }
+    
+    /**
+     * Tests the reference parameter handling
+     *
+     * @return void
+     */
+    public function testReferenceParameterHandling()
+    {
+        $mock = new MockHandler([
+            new Response(200, [], json_encode(['data' => ['text' => 'Hola, mundo!']]))
+        ]);
+        
+        $requestData = null;
+        $history = [];
+        $historyMiddleware = \GuzzleHttp\Middleware::history($history);
+        
+        $handlerStack = HandlerStack::create($mock);
+        $handlerStack->push($historyMiddleware);
+        
+        $client = new Client(['handler' => $handlerStack]);
+        
+        $engine = new LingoDotDevEngine(['apiKey' => 'test-api-key']);
+        
+        $reflection = new ReflectionClass($engine);
+        $property = $reflection->getProperty('_httpClient');
+        $property->setAccessible(true);
+        $property->setValue($engine, $client);
+        
+        $engine->localizeText('Hello, world!', [
+            'sourceLocale' => 'en',
+            'targetLocale' => 'es'
+        ]);
+        
+        $this->assertCount(1, $history);
+        $request = $history[0]['request'];
+        $requestBody = json_decode($request->getBody()->getContents(), true);
+        
+        $this->assertArrayHasKey('reference', $requestBody);
+        $this->assertEquals(new \stdClass(), $requestBody['reference']);
+        
+        $this->assertArrayHasKey('params', $requestBody);
+        $this->assertArrayHasKey('locale', $requestBody);
+        $this->assertArrayHasKey('data', $requestBody);
+        $this->assertEquals('en', $requestBody['locale']['source']);
+        $this->assertEquals('es', $requestBody['locale']['target']);
+        $this->assertEquals(['text' => 'Hello, world!'], $requestBody['data']);
     }
 
     /**
