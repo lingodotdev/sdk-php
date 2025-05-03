@@ -1,0 +1,102 @@
+name: Publish PHP SDK to Packagist
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, intl
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist
+
+      - name: Run tests
+        run: vendor/bin/phpunit tests/
+
+      # Only proceed with version bump and publishing if on main branch and tests passed
+      - name: Get current version
+        id: current_version
+        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        run: |
+          # Check if version exists in composer.json
+          VERSION=$(php -r '
+            $composerJson = json_decode(file_get_contents("composer.json"), true);
+            echo isset($composerJson["version"]) ? $composerJson["version"] : "";
+          ')
+          
+          if [[ -z "$VERSION" || ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Setting initial version to 0.1.0"
+            VERSION="0.1.0"
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump patch version
+        id: bump_version
+        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        run: |
+          # Get current version
+          CURRENT_VERSION=${{ steps.current_version.outputs.version }}
+          
+          # Validate current version format
+          if [[ ! "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Warning: Invalid version format: $CURRENT_VERSION. Using 0.1.0 as base."
+            CURRENT_VERSION="0.1.0"
+          fi
+          
+          # Use PHP to increment patch version
+          NEW_VERSION=$(php -r '
+            $version = "${{ steps.current_version.outputs.version }}";
+            if (!preg_match("/^[0-9]+\.[0-9]+\.[0-9]+$/", $version)) {
+              $version = "0.1.0";
+            }
+            list($major, $minor, $patch) = explode(".", $version);
+            $patch++;
+            echo "$major.$minor.$patch";
+          ')
+          
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          
+          # Update version in composer.json
+          php -r '
+          $composerJson = json_decode(file_get_contents("composer.json"), true);
+          $composerJson["version"] = "${{ steps.bump_version.outputs.new_version }}";
+          file_put_contents("composer.json", json_encode($composerJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+          '
+
+      - name: Commit and push version bump
+        uses: stefanzweifel/git-auto-commit-action@v4
+        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        with:
+          commit_message: "chore: bump PHP SDK version to ${{ steps.bump_version.outputs.new_version }}"
+          file_pattern: composer.json
+          commit_user_name: "Lingo.dev"
+          commit_user_email: "hi@lingo.dev"
+
+      - name: Create tag for release
+        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        run: |
+          git tag v${{ steps.bump_version.outputs.new_version }}
+          git push origin v${{ steps.bump_version.outputs.new_version }}
