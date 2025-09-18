@@ -24,6 +24,17 @@ $engine = new LingoDotDevEngine([
     "apiKey" => $apiKey,
 ]);
 
+/**
+ * Execute a CLI test callback, reporting success or failure to stdout.
+ *
+ * Prints the section header, runs the callback, dumps the JSON-encoded result
+ * when successful, or surfaces exception details (including HTTP responses).
+ *
+ * @param string   $name     Human-readable test name displayed in logs.
+ * @param callable $callback Zero-argument function returning the test result.
+ *
+ * @return bool True on success, false on failure.
+ */
 function runTest($name, $callback) {
     echo "\n=== Testing $name ===\n";
     try {
