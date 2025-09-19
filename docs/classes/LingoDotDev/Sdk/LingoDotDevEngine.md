@@ -50,15 +50,15 @@ public localizeObject(array<string,mixed> $obj, array<string,mixed> $params, nul
 
 **Parameters:**
 
-| Parameter           | Type                    | Description                                                                                                                                                                                                                                                                                                             |
-|---------------------|-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `$obj`              | **array<string,mixed>** | Nested data structure containing text to translate                                                                                                                                                                                                                                                                      |
-| `$params`           | **array<string,mixed>** | Parameters:
+| Parameter           | Type                    | Description                                                                                                                                                                                                                                                                                                                                                                                                         |
+|---------------------|-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$obj`              | **array<string,mixed>** | Nested data structure containing text to translate                                                                                                                                                                                                                                                                                                                                                                  |
+| `$params`           | **array<string,mixed>** | Translation options controlling locale, speed, and contextual reference data:
 - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
 - 'sourceLocale' (string\|null): Language code of original text, null for auto-detection
 - 'fast' (bool): Trade translation quality for speed
-- 'reference' (array): Context or glossary terms to guide translation |
-| `$progressCallback` | **null\|callable**      | Invoked per batch with (percentage complete, current batch, translated batch)                                                                                                                                                                                                                                           |
+- 'reference' (array<string, mixed>\|null): Context data or glossary terms to guide translation |
+| `$progressCallback` | **null\|callable**      | Invoked per batch with (percentage complete, current batch, translated batch)                                                                                                                                                                                                                                                                                                                                       |
 
 **Return Value:**
 
@@ -83,15 +83,15 @@ public localizeText(string $text, array<string,mixed> $params, null|callable $pr
 
 **Parameters:**
 
-| Parameter           | Type                    | Description                                                                                                                                                                                                                                                                                                                              |
-|---------------------|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `$text`             | **string**              | Text content to translate                                                                                                                                                                                                                                                                                                                |
-| `$params`           | **array<string,mixed>** | Parameters:
+| Parameter           | Type                    | Description                                                                                                                                                                                                                                                                                                                                                                                                                  |
+|---------------------|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$text`             | **string**              | Text content to translate                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `$params`           | **array<string,mixed>** | Translation options such as locale hints, speed preference, and contextual references:
 - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
 - 'sourceLocale' (string\|null): Language code of original text, null for auto-detection
-- 'fast' (bool): Prioritize speed over translation quality
-- 'reference' (array): Context, terminology, or style guidelines for translation |
-| `$progressCallback` | **null\|callable**      | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                              |
+- 'fast' (bool): Trade translation quality for speed
+- 'reference' (array<string, mixed>\|null): Context data or glossary terms to guide translation |
+| `$progressCallback` | **null\|callable**      | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                                                                                                                  |
 
 **Return Value:**
 
@@ -116,13 +116,13 @@ public batchLocalizeText(string $text, array<string,mixed> $params): string[]
 
 **Parameters:**
 
-| Parameter | Type                    | Description                                                                                                                                                                                                                                                                 |
-|-----------|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `$text`   | **string**              | Text content to translate into multiple languages                                                                                                                                                                                                                           |
-| `$params` | **array<string,mixed>** | Parameters:
+| Parameter | Type                    | Description                                                                                                                                                                                                                                                                                                    |
+|-----------|-------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$text`   | **string**              | Text content to translate into multiple languages                                                                                                                                                                                                                                                              |
+| `$params` | **array<string,mixed>** | Batch translation options shared by all target locales:
 - 'sourceLocale' (string, required): Language code of the original text (e.g., 'en')
 - 'targetLocales' (string[], required): Array of language codes to translate into (e.g., ['es', 'fr', 'de'])
-- 'fast' (bool): Apply speed optimization to all translations |
+- 'fast' (bool): Trade translation quality for speed |
 
 **Return Value:**
 
@@ -142,20 +142,22 @@ When an individual localization request fails
 Localize a chat transcript while preserving speaker names.
 
 ```php
-public localizeChat(array<int,array{name: string, text: string}> $chat, array<string,mixed> $params, null|callable $progressCallback = null): array<int,array{name: string, text: string}>
+public localizeChat(array<int,array<string,string>> $chat, array<string,mixed> $params, null|callable $progressCallback = null): array<int,array<string,string>>
 ```
 
 **Parameters:**
 
-| Parameter           | Type                                             | Description                                                                                                                                                                                                                                                                                                                                  |
-|---------------------|--------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `$chat`             | **array<int,array{name: string, text: string}>** | Conversation history with speaker names and their messages                                                                                                                                                                                                                                                                                   |
-| `$params`           | **array<string,mixed>**                          | Parameters:
+| Parameter           | Type                                | Description                                                                                                                                                                                                                                                                                                                                                                                                       |
+|---------------------|-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$chat`             | **array<int,array<string,string>>** | Conversation history with speaker names and their messages. Each entry must include:
+- 'name' (string): Speaker label to preserve
+- 'text' (string): Message content to translate                                                                                                                                                                                                                                 |
+| `$params`           | **array<string,mixed>**             | Chat translation options defining locale behavior and context:
 - 'targetLocale' (string, required): Language code to translate messages into (e.g., 'es', 'fr')
-- 'sourceLocale' (string\|null): Language of original messages, null for auto-detection
-- 'fast' (bool): Optimize for speed over translation quality
-- 'reference' (array): Conversation context or domain-specific terminology |
-| `$progressCallback` | **null\|callable**                               | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                                  |
+- 'sourceLocale' (string\|null): Language code of original messages, null for auto-detection
+- 'fast' (bool): Trade translation quality for speed
+- 'reference' (array<string, mixed>\|null): Context data or glossary terms to guide translation |
+| `$progressCallback` | **null\|callable**                  | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                                                                                                       |
 
 **Return Value:**
 
