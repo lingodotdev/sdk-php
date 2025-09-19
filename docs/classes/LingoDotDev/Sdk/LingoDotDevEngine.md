@@ -13,28 +13,6 @@ progress reporting, and surfacing validation or transport errors.
 
 * https://lingo.dev
 
-## Properties
-
-### config
-
-Configuration options for the Engine.
-
-```php
-protected array<string,mixed> $config
-```
-
-***
-
-### _httpClient
-
-HTTP client for API requests.
-
-```php
-private \GuzzleHttp\Client $_httpClient
-```
-
-***
-
 ## Methods
 
 ### __construct
@@ -59,91 +37,6 @@ public __construct(array<string,mixed> $config = []): mixed
 
 When API key is missing or values fail validation
 - [`InvalidArgumentException`](../../InvalidArgumentException)
-
-***
-
-### _localizeChunk
-
-Localize a single chunk of content.
-
-```php
-private _localizeChunk(string|null $sourceLocale, string $targetLocale, array<string,mixed> $payload, string $workflowId, bool $fast): array<string,mixed>
-```
-
-**Parameters:**
-
-| Parameter       | Type                    | Description                                                                    |
-|-----------------|-------------------------|--------------------------------------------------------------------------------|
-| `$sourceLocale` | **string\|null**        | Language code of the original text (e.g., 'en', 'es'), null for auto-detection |
-| `$targetLocale` | **string**              | Language code to translate into (e.g., 'fr', 'de')                             |
-| `$payload`      | **array<string,mixed>** | Content chunk with optional reference data for context                         |
-| `$workflowId`   | **string**              | Unique identifier for tracking related translation requests                    |
-| `$fast`         | **bool**                | Enable faster translation at potential quality tradeoff                        |
-
-**Return Value:**
-
-Translated chunk maintaining original structure
-
-**Throws:**
-
-When reference is not an array
-- [`InvalidArgumentException`](../../InvalidArgumentException)
-When API request fails
-- [`RuntimeException`](../../RuntimeException)
-
-***
-
-### _extractPayloadChunks
-
-Extract payload chunks based on the ideal chunk size.
-
-```php
-private _extractPayloadChunks(array<string,mixed> $payload): array<int,array<string,mixed>>
-```
-
-**Parameters:**
-
-| Parameter  | Type                    | Description               |
-|------------|-------------------------|---------------------------|
-| `$payload` | **array<string,mixed>** | The payload to be chunked |
-
-**Return Value:**
-
-Array of payload chunks
-
-***
-
-### _countWordsInRecord
-
-Count words in a record or array.
-
-```php
-private _countWordsInRecord(mixed $payload): int
-```
-
-**Parameters:**
-
-| Parameter  | Type      | Description                   |
-|------------|-----------|-------------------------------|
-| `$payload` | **mixed** | The payload to count words in |
-
-**Return Value:**
-
-Total number of words
-
-***
-
-### _createId
-
-Generate a unique ID.
-
-```php
-private _createId(): string
-```
-
-**Return Value:**
-
-Unique ID
 
 ***
 

@@ -1,5 +1,5 @@
 
-This is an automatically generated documentation for **Documentation**.
+This is an automatically generated documentation for **PHP SDK for Lingo.dev**.
 
 ## Namespaces
 
