@@ -1,10 +1,10 @@
 <?php
 /**
- * Test script for all API methods in the PHP SDK.
- *
- * Tests all available methods in the PHP SDK with real API calls
- * to ensure they work correctly with the implementation.
- *
+ * Test script for all API methods in the PHP SDK
+ * 
+ * This script tests all available methods in the PHP SDK with real API calls
+ * to ensure they work correctly with our fixed implementation.
+ * 
  * Usage: php test-all-methods.php <api_key>
  */
 
@@ -24,14 +24,6 @@ $engine = new LingoDotDevEngine([
     "apiKey" => $apiKey,
 ]);
 
-/**
- * Execute a CLI test callback, reporting success or failure to stdout.
- *
- * @param string        $name     Human-readable test name displayed in logs
- * @param callable(): mixed $callback Zero-argument function returning the test result
- *
- * @return bool True on success, false on failure
- */
 function runTest($name, $callback) {
     echo "\n=== Testing $name ===\n";
     try {

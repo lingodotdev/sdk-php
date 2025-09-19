@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for the LingoDotDevEngine class.
+ * Tests for the LingoDotDevEngine class
  *
  * @category Tests
  * @package  Lingodotdev\Sdk\Tests
@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
 /**
- * Test cases for the LingoDotDevEngine class.
+ * Test cases for the LingoDotDevEngine class
  *
  * @category Tests
  * @package  Lingodotdev\Sdk\Tests
@@ -31,9 +31,9 @@ use ReflectionClass;
 class LingoDotDevEngineTest extends TestCase
 {
     /**
-     * Creates a mock engine with predefined responses.
+     * Creates a mock engine with predefined responses
      *
-     * @param Response[] $responses Array of mock responses
+     * @param array $responses Array of mock responses
      *
      * @return LingoDotDevEngine Mocked engine instance
      */
@@ -54,7 +54,7 @@ class LingoDotDevEngineTest extends TestCase
     }
 
     /**
-     * Tests constructor with valid configuration.
+     * Tests constructor with valid configuration
      *
      * @return void
      */
@@ -65,7 +65,7 @@ class LingoDotDevEngineTest extends TestCase
     }
 
     /**
-     * Tests constructor with invalid configuration.
+     * Tests constructor with invalid configuration
      *
      * @return void
      */
@@ -76,7 +76,7 @@ class LingoDotDevEngineTest extends TestCase
     }
 
     /**
-     * Tests the localizeText method.
+     * Tests the localizeText method
      *
      * @return void
      */
@@ -105,7 +105,7 @@ class LingoDotDevEngineTest extends TestCase
     }
 
     /**
-     * Tests the localizeObject method.
+     * Tests the localizeObject method
      *
      * @return void
      */
@@ -145,7 +145,7 @@ class LingoDotDevEngineTest extends TestCase
     }
 
     /**
-     * Tests the batchLocalizeText method.
+     * Tests the batchLocalizeText method
      *
      * @return void
      */
@@ -181,7 +181,7 @@ class LingoDotDevEngineTest extends TestCase
     }
 
     /**
-     * Tests the localizeChat method.
+     * Tests the localizeChat method
      *
      * @return void
      */
@@ -225,7 +225,7 @@ class LingoDotDevEngineTest extends TestCase
     }
 
     /**
-     * Tests the recognizeLocale method.
+     * Tests the recognizeLocale method
      *
      * @return void
      */
@@ -248,7 +248,7 @@ class LingoDotDevEngineTest extends TestCase
     }
 
     /**
-     * Tests error handling in the SDK.
+     * Tests error handling in the SDK
      *
      * @return void
      */
@@ -276,7 +276,7 @@ class LingoDotDevEngineTest extends TestCase
     }
     
     /**
-     * Tests the reference parameter handling.
+     * Tests the reference parameter handling
      *
      * @return void
      */
@@ -323,7 +323,7 @@ class LingoDotDevEngineTest extends TestCase
     }
 
     /**
-     * Tests the progress callback functionality.
+     * Tests the progress callback functionality
      *
      * @return void
      */
