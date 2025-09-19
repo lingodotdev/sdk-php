@@ -5,6 +5,8 @@ Use a single engine instance to translate strings, arrays, and chat logs, or
 to detect the locale of free-form text. The engine handles request batching,
 progress reporting, and surfacing validation or transport errors.
 
+Example (basic setup):
+
 ***
 
 * Full name: `\LingoDotDev\Sdk\LingoDotDevEngine`
@@ -45,7 +47,7 @@ When API key is missing or values fail validation
 Localize every string in a nested array while keeping its shape intact.
 
 ```php
-public localizeObject(array<string,mixed> $obj, array<string,mixed> $params, null|callable $progressCallback = null): array<string,mixed>
+public localizeObject(array<string,mixed> $obj, array<string,mixed> $params, callable|null $progressCallback = null): array<string,mixed>
 ```
 
 **Parameters:**
@@ -58,7 +60,7 @@ public localizeObject(array<string,mixed> $obj, array<string,mixed> $params, nul
 - 'sourceLocale' (string\|null): Language code of original text, null for auto-detection
 - 'fast' (bool): Trade translation quality for speed
 - 'reference' (array<string, mixed>\|null): Context data or glossary terms to guide translation |
-| `$progressCallback` | **null\|callable**      | Invoked per batch with (percentage complete, current batch, translated batch)                                                                                                                                                                                                                                                                                                                                       |
+| `$progressCallback` | **callable\|null**      | Invoked per batch with (percentage complete, current batch, translated batch)                                                                                                                                                                                                                                                                                                                                       |
 
 **Return Value:**
 
@@ -78,7 +80,7 @@ When API rejects or fails to process the request
 Localize a single string and return the translated text.
 
 ```php
-public localizeText(string $text, array<string,mixed> $params, null|callable $progressCallback = null): string
+public localizeText(string $text, array<string,mixed> $params, callable|null $progressCallback = null): string
 ```
 
 **Parameters:**
@@ -91,7 +93,7 @@ public localizeText(string $text, array<string,mixed> $params, null|callable $pr
 - 'sourceLocale' (string\|null): Language code of original text, null for auto-detection
 - 'fast' (bool): Trade translation quality for speed
 - 'reference' (array<string, mixed>\|null): Context data or glossary terms to guide translation |
-| `$progressCallback` | **null\|callable**      | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                                                                                                                  |
+| `$progressCallback` | **callable\|null**      | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                                                                                                                  |
 
 **Return Value:**
 
@@ -142,7 +144,7 @@ When an individual localization request fails
 Localize a chat transcript while preserving speaker names.
 
 ```php
-public localizeChat(array<int,array<string,string>> $chat, array<string,mixed> $params, null|callable $progressCallback = null): array<int,array<string,string>>
+public localizeChat(array<int,array<string,string>> $chat, array<string,mixed> $params, callable|null $progressCallback = null): array<int,array<string,string>>
 ```
 
 **Parameters:**
@@ -157,7 +159,7 @@ public localizeChat(array<int,array<string,string>> $chat, array<string,mixed> $
 - 'sourceLocale' (string\|null): Language code of original messages, null for auto-detection
 - 'fast' (bool): Trade translation quality for speed
 - 'reference' (array<string, mixed>\|null): Context data or glossary terms to guide translation |
-| `$progressCallback` | **null\|callable**                  | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                                                                                                       |
+| `$progressCallback` | **callable\|null**                  | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                                                                                                       |
 
 **Return Value:**
 
