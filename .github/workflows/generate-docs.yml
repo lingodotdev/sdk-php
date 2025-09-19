@@ -31,7 +31,13 @@ jobs:
         run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: Generate Markdown documentation
-        run: vendor/bin/phpdoc --directory=src --target=docs --template="vendor/saggre/phpdocumentor-markdown/themes/markdown"
+        run: |
+          vendor/bin/phpdoc \
+            --directory=src \
+            --target=docs \
+            --template="vendor/saggre/phpdocumentor-markdown/themes/markdown" \
+            --title="PHP SDK for Lingo.dev" \
+            --visibility=public
 
       - name: Commit and push updates
         run: |
