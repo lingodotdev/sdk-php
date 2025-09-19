@@ -6,11 +6,16 @@ to detect the locale of free-form text. The engine handles request batching,
 progress reporting, and surfacing validation or transport errors.
 
 Example (basic setup):
-    $engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
+    $config = EngineConfig::create($_ENV['LINGODOTDEV_API_KEY']);
+    $engine = new LingoDotDevEngine($config);
 
 Example (Laravel integration):
-    $engine = new LingoDotDevEngine(['apiKey' => config('services.lingodotdev.api_key')]);
-    $engine->localizeText($request->message, ['sourceLocale' => 'en', 'targetLocale' => 'es']);
+    $config = EngineConfig::create(config('services.lingodotdev.api_key'))
+        ->withBatchSize(100);
+    $engine = new LingoDotDevEngine($config);
+
+    $options = TranslationOptions::create('es')->from('en');
+    $engine->localizeText($request->message, $options);
 
 ***
 
@@ -24,28 +29,27 @@ Example (Laravel integration):
 
 ### __construct
 
-Build an engine with your API key and optional batching limits.
+Build an engine with your configuration.
 
 ```php
-public __construct(array{apiKey: string, apiUrl?: string, batchSize?: int, idealBatchItemSize?: int} $config = []): mixed
+public __construct(\LingoDotDev\Sdk\EngineConfig $config): mixed
 ```
 
 Example:
-$engine = new LingoDotDevEngine([
-    'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
-    'batchSize' => 100,
-    'idealBatchItemSize' => 1000,
-]);
+$config = EngineConfig::create($_ENV['LINGODOTDEV_API_KEY'])
+    ->withBatchSize(100)
+    ->withIdealBatchItemSize(1000);
+$engine = new LingoDotDevEngine($config);
 
 **Parameters:**
 
-| Parameter | Type                                                                                  | Description           |
-|-----------|---------------------------------------------------------------------------------------|-----------------------|
-| `$config` | **array{apiKey: string, apiUrl?: string, batchSize?: int, idealBatchItemSize?: int}** | Configuration options |
+| Parameter | Type                              | Description          |
+|-----------|-----------------------------------|----------------------|
+| `$config` | **\LingoDotDev\Sdk\EngineConfig** | Engine configuration |
 
 **Throws:**
 
-API key missing or values invalid
+Invalid configuration values
 - [`InvalidArgumentException`](../../InvalidArgumentException)
 
 ***
@@ -55,21 +59,22 @@ API key missing or values invalid
 Localize every string in a nested array while keeping its shape intact.
 
 ```php
-public localizeObject(array<string,mixed> $obj, array{targetLocale: string, sourceLocale?: string|null, fast?: bool, reference?: array<string,mixed>|null} $params, callable|null $progressCallback = null): array<string,mixed>
+public localizeObject(array<string,mixed> $obj, \LingoDotDev\Sdk\TranslationOptions $options, callable|null $progressCallback = null): array<string,mixed>
 ```
 
 Example:
-$content = ['greeting' => 'Hello'];
-$engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
-$engine->localizeObject($content, ['sourceLocale' => 'en', 'targetLocale' => 'fr']);
+$config = EngineConfig::create($_ENV['LINGODOTDEV_API_KEY']);
+$engine = new LingoDotDevEngine($config);
+$options = TranslationOptions::create('fr')->from('en');
+$engine->localizeObject(['greeting' => 'Hello'], $options);
 
 **Parameters:**
 
-| Parameter           | Type                                                                                                             | Description                          |
-|---------------------|------------------------------------------------------------------------------------------------------------------|--------------------------------------|
-| `$obj`              | **array<string,mixed>**                                                                                          | Nested data structure to translate   |
-| `$params`           | **array{targetLocale: string, sourceLocale?: string\|null, fast?: bool, reference?: array<string,mixed>\|null}** | Translation options                  |
-| `$progressCallback` | **callable\|null**                                                                                               | Progress callback (%, batch, result) |
+| Parameter           | Type                                    | Description                          |
+|---------------------|-----------------------------------------|--------------------------------------|
+| `$obj`              | **array<string,mixed>**                 | Nested data structure to translate   |
+| `$options`          | **\LingoDotDev\Sdk\TranslationOptions** | Translation options                  |
+| `$progressCallback` | **callable\|null**                      | Progress callback (%, batch, result) |
 
 **Return Value:**
 
@@ -77,8 +82,6 @@ Translated data preserving structure
 
 **Throws:**
 
-Invalid parameters or reference
-- [`InvalidArgumentException`](../../InvalidArgumentException)
 API request failure
 - [`RuntimeException`](../../RuntimeException)
 
@@ -89,30 +92,37 @@ API request failure
 Localize a single string and return the translated text.
 
 ```php
-public localizeText(string $text, array{targetLocale: string, sourceLocale?: string|null, fast?: bool, reference?: array<string,mixed>|null} $params, callable|null $progressCallback = null): string
+public localizeText(string $text, \LingoDotDev\Sdk\TranslationOptions $options, callable|null $progressCallback = null): string
 ```
 
 Examples:
-$engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
-$engine->localizeText('Hello, world!', ['sourceLocale' => 'en', 'targetLocale' => 'es']);
+$config = EngineConfig::create($_ENV['LINGODOTDEV_API_KEY']);
+$engine = new LingoDotDevEngine($config);
 
+// Simple translation
+$options = TranslationOptions::create('es')->from('en');
+$engine->localizeText('Hello, world!', $options);
+
+// With progress callback
 $engine->localizeText(
-    'This is a very long text that needs translation...',
-    ['sourceLocale' => 'en', 'targetLocale' => 'es'],
+    'This is a very long text...',
+    $options,
     function (int $progress): void {
-        echo 'Translation progress: ' . $progress . "%%\n";
+        echo "Progress: {$progress}%%\n";
     }
 );
 
-$engine->localizeText('Bonjour le monde', ['sourceLocale' => null, 'targetLocale' => 'en']);
+// Auto-detect source language
+$options = TranslationOptions::create('en');
+$engine->localizeText('Bonjour le monde', $options);
 
 **Parameters:**
 
-| Parameter           | Type                                                                                                             | Description                |
-|---------------------|------------------------------------------------------------------------------------------------------------------|----------------------------|
-| `$text`             | **string**                                                                                                       | Text to translate          |
-| `$params`           | **array{targetLocale: string, sourceLocale?: string\|null, fast?: bool, reference?: array<string,mixed>\|null}** | Translation options        |
-| `$progressCallback` | **callable\|null**                                                                                               | Progress callback (0-100%) |
+| Parameter           | Type                                    | Description                |
+|---------------------|-----------------------------------------|----------------------------|
+| `$text`             | **string**                              | Text to translate          |
+| `$options`          | **\LingoDotDev\Sdk\TranslationOptions** | Translation options        |
+| `$progressCallback` | **callable\|null**                      | Progress callback (0-100%) |
 
 **Return Value:**
 
@@ -120,8 +130,6 @@ Translated text or empty string
 
 **Throws:**
 
-Missing or invalid parameters
-- [`InvalidArgumentException`](../../InvalidArgumentException)
 API request failure
 - [`RuntimeException`](../../RuntimeException)
 
@@ -132,22 +140,24 @@ API request failure
 Localize a string into multiple languages and return texts in order.
 
 ```php
-public batchLocalizeText(string $text, array{sourceLocale: string, targetLocales: string[], fast?: bool} $params): string[]
+public batchLocalizeText(string $text, \LingoDotDev\Sdk\BatchTranslationOptions $options): string[]
 ```
 
 Example:
-$engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
-$engine->batchLocalizeText('Hello, world!', [
-    'sourceLocale' => 'en',
-    'targetLocales' => ['es', 'fr', 'de'],
-]);
+$config = EngineConfig::create($_ENV['LINGODOTDEV_API_KEY']);
+$engine = new LingoDotDevEngine($config);
+
+$options = BatchTranslationOptions::create('en')
+    ->to(['es', 'fr', 'de'])
+    ->withFastMode();
+$engine->batchLocalizeText('Hello, world!', $options);
 
 **Parameters:**
 
-| Parameter | Type                                                                  | Description               |
-|-----------|-----------------------------------------------------------------------|---------------------------|
-| `$text`   | **string**                                                            | Text to translate         |
-| `$params` | **array{sourceLocale: string, targetLocales: string[], fast?: bool}** | Batch translation options |
+| Parameter  | Type                                         | Description               |
+|------------|----------------------------------------------|---------------------------|
+| `$text`    | **string**                                   | Text to translate         |
+| `$options` | **\LingoDotDev\Sdk\BatchTranslationOptions** | Batch translation options |
 
 **Return Value:**
 
@@ -155,8 +165,6 @@ Translated texts in targetLocales order
 
 **Throws:**
 
-Missing or invalid parameters
-- [`InvalidArgumentException`](../../InvalidArgumentException)
 Individual request failure
 - [`RuntimeException`](../../RuntimeException)
 
@@ -167,7 +175,7 @@ Individual request failure
 Localize a chat transcript while preserving speaker names.
 
 ```php
-public localizeChat(array<int,array{name: string, text: string}> $chat, array{targetLocale: string, sourceLocale?: string|null, fast?: bool, reference?: array<string,mixed>|null} $params, callable|null $progressCallback = null): array<int,array{name: string, text: string}>
+public localizeChat(array<int,array{name: string, text: string}> $chat, \LingoDotDev\Sdk\TranslationOptions $options, callable|null $progressCallback = null): array<int,array{name: string, text: string}>
 ```
 
 Example:
@@ -175,16 +183,19 @@ $conversation = [
     ['name' => 'Alice', 'text' => 'Hello, how are you?'],
     ['name' => 'Bob', 'text' => 'I am fine, thank you!'],
 ];
-$engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
-$engine->localizeChat($conversation, ['sourceLocale' => 'en', 'targetLocale' => 'de']);
+
+$config = EngineConfig::create($_ENV['LINGODOTDEV_API_KEY']);
+$engine = new LingoDotDevEngine($config);
+$options = TranslationOptions::create('de')->from('en');
+$engine->localizeChat($conversation, $options);
 
 **Parameters:**
 
-| Parameter           | Type                                                                                                             | Description                          |
-|---------------------|------------------------------------------------------------------------------------------------------------------|--------------------------------------|
-| `$chat`             | **array<int,array{name: string, text: string}>**                                                                 | Conversation with names and messages |
-| `$params`           | **array{targetLocale: string, sourceLocale?: string\|null, fast?: bool, reference?: array<string,mixed>\|null}** | Translation options                  |
-| `$progressCallback` | **callable\|null**                                                                                               | Progress callback (0-100%)           |
+| Parameter           | Type                                             | Description                          |
+|---------------------|--------------------------------------------------|--------------------------------------|
+| `$chat`             | **array<int,array{name: string, text: string}>** | Conversation with names and messages |
+| `$options`          | **\LingoDotDev\Sdk\TranslationOptions**          | Translation options                  |
+| `$progressCallback` | **callable\|null**                               | Progress callback (0-100%)           |
 
 **Return Value:**
 
@@ -192,7 +203,7 @@ Translated chat preserving names
 
 **Throws:**
 
-Invalid chat entries or parameters
+Invalid chat entries
 - [`InvalidArgumentException`](../../InvalidArgumentException)
 API request failure
 - [`RuntimeException`](../../RuntimeException)
@@ -208,7 +219,8 @@ public recognizeLocale(string $text): string
 ```
 
 Example:
-$engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
+$config = EngineConfig::create($_ENV['LINGODOTDEV_API_KEY']);
+$engine = new LingoDotDevEngine($config);
 $engine->recognizeLocale('Bonjour le monde');
 
 **Parameters:**
