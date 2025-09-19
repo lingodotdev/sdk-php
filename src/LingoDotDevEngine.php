@@ -22,6 +22,51 @@ use Respect\Validation\Validator as v;
  * to detect the locale of free-form text. The engine handles request batching,
  * progress reporting, and surfacing validation or transport errors.
  *
+ * @example Basic setup
+ * ```php
+ * <?php
+ * 
+ * require 'vendor/autoload.php';
+ * 
+ * use LingoDotDev\Sdk\LingoDotDevEngine;
+ * 
+ * $engine = new LingoDotDevEngine([
+ *     'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+ * ]);
+ * ```
+ *
+ * @example Laravel integration
+ * ```php
+ * <?php
+ * 
+ * namespace App\Http\Controllers;
+ * 
+ * use Illuminate\Http\Request;
+ * use LingoDotDev\Sdk\LingoDotDevEngine;
+ * 
+ * class TranslationController extends Controller
+ * {
+ *     private $engine;
+ * 
+ *     public function __construct()
+ *     {
+ *         $this->engine = new LingoDotDevEngine([
+ *             'apiKey' => config('services.lingodotdev.api_key'),
+ *         ]);
+ *     }
+ * 
+ *     public function translateMessage(Request $request)
+ *     {
+ *         $translated = $this->engine->localizeText($request->message, [
+ *             'sourceLocale' => $request->source_locale,
+ *             'targetLocale' => $request->target_locale,
+ *         ]);
+ * 
+ *         return response()->json(['translated' => $translated]);
+ *     }
+ * }
+ * ```
+ *
  * @category Localization
  * @package  Lingodotdev\Sdk
  * @author   Lingo.dev Team <hi@lingo.dev>
@@ -52,6 +97,28 @@ class LingoDotDevEngine
      *                                      - 'apiUrl' (string): API base URL (default: https://engine.lingo.dev)
      *                                      - 'batchSize' (int): Records per request, 1-250 (default: 25)
      *                                      - 'idealBatchItemSize' (int): Max words per request, 1-2500 (default: 250)
+     *
+     * @example Configuration
+     * ```php
+     * <?php
+     * 
+     * require 'vendor/autoload.php';
+     * 
+     * use LingoDotDev\Sdk\LingoDotDevEngine;
+     * 
+     * $engine = new LingoDotDevEngine([
+     *     'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+     *     'batchSize' => 100,
+     *     'idealBatchItemSize' => 1000,
+     * ]);
+     * 
+     * $result = $engine->localizeText('Configuration test', [
+     *     'sourceLocale' => 'en',
+     *     'targetLocale' => 'es',
+     * ]);
+     * echo $result;
+     * // Output: Prueba de configuración
+     * ```
      *
      * @throws \InvalidArgumentException When API key is missing or values fail validation
      */
@@ -304,6 +371,35 @@ class LingoDotDevEngine
      *
      * @return array<string, mixed> Translated data preserving original structure and non-text values
      *
+     * @example Object translation
+     * ```php
+     * <?php
+     * 
+     * require 'vendor/autoload.php';
+     * 
+     * use LingoDotDev\Sdk\LingoDotDevEngine;
+     * 
+     * $engine = new LingoDotDevEngine([
+     *     'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+     * ]);
+     * 
+     * $content = [
+     *     'greeting' => 'Hello',
+     *     'farewell' => 'Goodbye',
+     *     'messages' => [
+     *         'welcome' => 'Welcome to our service',
+     *         'thanks' => 'Thank you for your business'
+     *     ]
+     * ];
+     * 
+     * $translated = $engine->localizeObject($content, [
+     *     'sourceLocale' => 'en',
+     *     'targetLocale' => 'fr',
+     * ]);
+     * print_r($translated);
+     * // Output: Array with French translations maintaining structure
+     * ```
+     *
      * @throws \InvalidArgumentException When required params or reference data are invalid
      * @throws \RuntimeException When API rejects or fails to process the request
      */
@@ -333,6 +429,117 @@ class LingoDotDevEngine
      *
      * @return string Translated text, or empty string if translation unavailable
      *
+     * @example Text translation
+     * ```php
+     * <?php
+     * 
+     * require 'vendor/autoload.php';
+     * 
+     * use LingoDotDev\Sdk\LingoDotDevEngine;
+     * 
+     * $engine = new LingoDotDevEngine([
+     *     'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+     * ]);
+     * 
+     * $result = $engine->localizeText('Hello, world!', [
+     *     'sourceLocale' => 'en',
+     *     'targetLocale' => 'es',
+     * ]);
+     * echo $result;
+     * // Output: ¡Hola, mundo!
+     * ```
+     *
+     * @example Progress tracking
+     * ```php
+     * <?php
+     * 
+     * require 'vendor/autoload.php';
+     * 
+     * use LingoDotDev\Sdk\LingoDotDevEngine;
+     * 
+     * $engine = new LingoDotDevEngine([
+     *     'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+     * ]);
+     * 
+     * $largeText = 'This is a very long text that needs translation...';
+     * 
+     * $result = $engine->localizeText($largeText, [
+     *     'sourceLocale' => 'en',
+     *     'targetLocale' => 'es',
+     * ], function ($progress) {
+     *     echo "Translation progress: $progress%\n";
+     * });
+     * // Output:
+     * // Translation progress: 25%
+     * // Translation progress: 50%
+     * // Translation progress: 75%
+     * // Translation progress: 100%
+     * ```
+     *
+     * @example Translation parameters
+     * ```php
+     * <?php
+     * 
+     * require 'vendor/autoload.php';
+     * 
+     * use LingoDotDev\Sdk\LingoDotDevEngine;
+     * 
+     * $engine = new LingoDotDevEngine([
+     *     'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+     * ]);
+     * 
+     * $result = $engine->localizeText('Hello world', [
+     *     'sourceLocale' => 'en',
+     *     'targetLocale' => 'es',
+     *     'fast' => true,
+     * ]);
+     * echo $result;
+     * // Output: Hola mundo
+     * ```
+     *
+     * @example Automatic language detection
+     * ```php
+     * <?php
+     * 
+     * require 'vendor/autoload.php';
+     * 
+     * use LingoDotDev\Sdk\LingoDotDevEngine;
+     * 
+     * $engine = new LingoDotDevEngine([
+     *     'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+     * ]);
+     * 
+     * $result = $engine->localizeText('Bonjour le monde', [
+     *     'sourceLocale' => null,
+     *     'targetLocale' => 'en',
+     * ]);
+     * echo $result;
+     * // Output: Hello world
+     * ```
+     *
+     * @example Error handling
+     * ```php
+     * <?php
+     * 
+     * require 'vendor/autoload.php';
+     * 
+     * use LingoDotDev\Sdk\LingoDotDevEngine;
+     * 
+     * $engine = new LingoDotDevEngine([
+     *     'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+     * ]);
+     * 
+     * try {
+     *     $result = $engine->localizeText('Hello', [
+     *         'sourceLocale' => 'en',
+     *         'targetLocale' => 'es',
+     *     ]);
+     *     echo $result;
+     * } catch (Exception $e) {
+     *     error_log('Translation failed: ' . $e->getMessage());
+     * }
+     * ```
+     *
      * @throws \InvalidArgumentException When required params are missing or invalid
      * @throws \RuntimeException When API rejects or fails to process the request
      */
@@ -361,6 +568,26 @@ class LingoDotDevEngine
      *                                     - 'fast' (bool): Apply speed optimization to all translations
      *
      * @return string[] Array of translated texts in same order as targetLocales parameter
+     *
+     * @example Batch translation to multiple languages
+     * ```php
+     * <?php
+     * 
+     * require 'vendor/autoload.php';
+     * 
+     * use LingoDotDev\Sdk\LingoDotDevEngine;
+     * 
+     * $engine = new LingoDotDevEngine([
+     *     'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+     * ]);
+     * 
+     * $results = $engine->batchLocalizeText('Hello, world!', [
+     *     'sourceLocale' => 'en',
+     *     'targetLocales' => ['es', 'fr', 'de'],
+     * ]);
+     * print_r($results);
+     * // Output: ["¡Hola, mundo!", "Bonjour le monde!", "Hallo, Welt!"]
+     * ```
      *
      * @throws \InvalidArgumentException When required params are missing or invalid
      * @throws \RuntimeException When an individual localization request fails
@@ -402,6 +629,38 @@ class LingoDotDevEngine
      *
      * @return array<int, array{name: string, text: string}> Translated messages keeping original speaker names unchanged
      *
+     * @example Chat translation
+     * ```php
+     * <?php
+     * 
+     * require 'vendor/autoload.php';
+     * 
+     * use LingoDotDev\Sdk\LingoDotDevEngine;
+     * 
+     * $engine = new LingoDotDevEngine([
+     *     'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+     * ]);
+     * 
+     * $conversation = [
+     *     ['name' => 'Alice', 'text' => 'Hello, how are you?'],
+     *     ['name' => 'Bob', 'text' => 'I am fine, thank you!'],
+     *     ['name' => 'Alice', 'text' => 'What are you doing today?']
+     * ];
+     * 
+     * $translated = $engine->localizeChat($conversation, [
+     *     'sourceLocale' => 'en',
+     *     'targetLocale' => 'de',
+     * ]);
+     * 
+     * foreach ($translated as $message) {
+     *     echo $message['name'] . ': ' . $message['text'] . "\n";
+     * }
+     * // Output:
+     * // Alice: Hallo, wie geht es dir?
+     * // Bob: Mir geht es gut, danke!
+     * // Alice: Was machst du heute?
+     * ```
+     *
      * @throws \InvalidArgumentException When chat entries or params are invalid
      * @throws \RuntimeException When API rejects or fails to process the request
      */
@@ -440,6 +699,23 @@ class LingoDotDevEngine
      * @param string $text Sample text for language detection (longer text improves accuracy)
      *
      * @return string ISO language code detected by the API (e.g., 'en', 'es', 'zh')
+     *
+     * @example Language detection
+     * ```php
+     * <?php
+     * 
+     * require 'vendor/autoload.php';
+     * 
+     * use LingoDotDev\Sdk\LingoDotDevEngine;
+     * 
+     * $engine = new LingoDotDevEngine([
+     *     'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+     * ]);
+     * 
+     * $locale = $engine->recognizeLocale('Bonjour le monde');
+     * echo $locale;
+     * // Output: fr
+     * ```
      *
      * @throws \InvalidArgumentException When input text is blank after trimming
      * @throws \RuntimeException When API response is invalid or request fails
