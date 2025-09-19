@@ -93,10 +93,10 @@ class LingoDotDevEngine
      * Build an engine with your API key and optional batching limits.
      *
      * @param array<string, mixed> $config Configuration options:
-     *                                      - 'apiKey' (string, required): Your API token
-     *                                      - 'apiUrl' (string): API base URL (default: https://engine.lingo.dev)
-     *                                      - 'batchSize' (int): Records per request, 1-250 (default: 25)
-     *                                      - 'idealBatchItemSize' (int): Max words per request, 1-2500 (default: 250)
+     *     - 'apiKey' (string, required): Your API token
+     *     - 'apiUrl' (string): API base URL (default: https://engine.lingo.dev)
+     *     - 'batchSize' (int): Records per request, 1-250 (default: 25)
+     *     - 'idealBatchItemSize' (int): Max words per request, 1-2500 (default: 250)
      *
      * @example Configuration
      * ```php
@@ -163,7 +163,11 @@ class LingoDotDevEngine
      * Localize content using the Lingo.dev API.
      *
      * @param array<string, mixed>         $payload          Content to translate, structured as key-value pairs
-     * @param array<string, mixed>         $params           Translation configuration options
+     * @param array<string, mixed>         $params           Translation configuration options:
+     *     - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
+     *     - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
+     *     - 'fast' (bool): Trade translation quality for speed
+     *     - 'reference' (array<string, mixed>|null): Context or glossary terms to guide translation
      * @param null|callable(int, mixed, mixed): void $progressCallback Callback invoked with completion percentage (0-100), current chunk, and processed chunk
      *
      * @return array<string, mixed> Translated content maintaining original structure
@@ -217,11 +221,13 @@ class LingoDotDevEngine
     /**
      * Localize a single chunk of content.
      *
-     * @param string|null          $sourceLocale Language code of the original text (e.g., 'en', 'es'), null for auto-detection
-     * @param string               $targetLocale Language code to translate into (e.g., 'fr', 'de')
-     * @param array<string, mixed> $payload      Content chunk with optional reference data for context
-     * @param string               $workflowId   Unique identifier for tracking related translation requests
-     * @param bool                 $fast         Enable faster translation at potential quality tradeoff
+     * @param string|null $sourceLocale Language code of the original text (e.g., 'en', 'es'), null for auto-detection
+     * @param string $targetLocale Language code to translate into (e.g., 'fr', 'de')
+     * @param array<string, mixed> $payload Content chunk with optional reference data for context:
+     *     - 'data' (array<string, mixed>): Chunk data submitted for translation
+     *     - 'reference' (array<string, mixed>|null): Additional context for the translation request
+     * @param string $workflowId Unique identifier for tracking related translation requests
+     * @param bool $fast Enable faster translation at potential quality tradeoff
      *
      * @return array<string, mixed> Translated chunk maintaining original structure
      *
@@ -361,12 +367,12 @@ class LingoDotDevEngine
     /**
      * Localize every string in a nested array while keeping its shape intact.
      *
-     * @param array<string, mixed> $obj              Nested data structure containing text to translate
-     * @param array<string, mixed> $params           Parameters:
-     *                                                - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
-     *                                                - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
-     *                                                - 'fast' (bool): Trade translation quality for speed
-     *                                                - 'reference' (array): Context or glossary terms to guide translation
+     * @param array<string, mixed> $obj Nested data structure containing text to translate
+     * @param array<string, mixed> $params Translation options controlling locale, speed, and contextual reference data:
+     *     - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
+     *     - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
+     *     - 'fast' (bool): Trade translation quality for speed
+     *     - 'reference' (array<string, mixed>|null): Context or glossary terms to guide translation
      * @param null|callable(int, mixed, mixed): void $progressCallback Invoked per batch with (percentage complete, current batch, translated batch)
      *
      * @return array<string, mixed> Translated data preserving original structure and non-text values
@@ -419,12 +425,12 @@ class LingoDotDevEngine
     /**
      * Localize a single string and return the translated text.
      *
-     * @param string                          $text             Text content to translate
-     * @param array<string, mixed>            $params           Parameters:
-     *                                                          - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
-     *                                                          - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
-     *                                                          - 'fast' (bool): Prioritize speed over translation quality
-     *                                                          - 'reference' (array): Context, terminology, or style guidelines for translation
+     * @param string $text Text content to translate
+     * @param array<string, mixed> $params Translation options such as locale hints, speed preference, and contextual references:
+     *     - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
+     *     - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
+     *     - 'fast' (bool): Trade translation quality for speed
+     *     - 'reference' (array<string, mixed>|null): Context, terminology, or style guidelines
      * @param null|callable(int): void $progressCallback Called with completion percentage (0-100) during processing
      *
      * @return string Translated text, or empty string if translation unavailable
@@ -561,11 +567,11 @@ class LingoDotDevEngine
     /**
      * Localize a string into multiple languages and return texts in order.
      *
-     * @param string               $text   Text content to translate into multiple languages
-     * @param array<string, mixed> $params Parameters:
-     *                                     - 'sourceLocale' (string, required): Language code of the original text (e.g., 'en')
-     *                                     - 'targetLocales' (string[], required): Array of language codes to translate into (e.g., ['es', 'fr', 'de'])
-     *                                     - 'fast' (bool): Apply speed optimization to all translations
+     * @param string $text Text content to translate into multiple languages
+     * @param array<string, mixed> $params Batch translation options shared by all target locales:
+     *     - 'sourceLocale' (string, required): Language code of the original text (e.g., 'en')
+     *     - 'targetLocales' (string[], required): Array of language codes to translate into (e.g., ['es', 'fr', 'de'])
+     *     - 'fast' (bool): Apply speed optimization to all translations
      *
      * @return string[] Array of translated texts in same order as targetLocales parameter
      *
@@ -619,15 +625,17 @@ class LingoDotDevEngine
     /**
      * Localize a chat transcript while preserving speaker names.
      *
-     * @param array<int, array{name: string, text: string}> $chat             Conversation history with speaker names and their messages
-     * @param array<string, mixed>                           $params           Parameters:
-     *                                                                          - 'targetLocale' (string, required): Language code to translate messages into (e.g., 'es', 'fr')
-     *                                                                          - 'sourceLocale' (string|null): Language of original messages, null for auto-detection
-     *                                                                          - 'fast' (bool): Optimize for speed over translation quality
-     *                                                                          - 'reference' (array): Conversation context or domain-specific terminology
-     * @param null|callable(int): void                       $progressCallback Called with completion percentage (0-100) during processing
+     * @param array<int, array<string, string>> $chat Conversation history with speaker names and their messages. Each entry must include:
+     *     - 'name' (string): Speaker label to preserve
+     *     - 'text' (string): Message content to translate
+     * @param array<string, mixed> $params Chat translation options defining locale behavior and context:
+     *     - 'targetLocale' (string, required): Language code to translate messages into (e.g., 'es', 'fr')
+     *     - 'sourceLocale' (string|null): Language code of original messages, null for auto-detection
+     *     - 'fast' (bool): Optimize for speed over translation quality
+     *     - 'reference' (array<string, mixed>|null): Conversation context or domain-specific terminology
+     * @param null|callable(int): void $progressCallback Called with completion percentage (0-100) during processing
      *
-     * @return array<int, array{name: string, text: string}> Translated messages keeping original speaker names unchanged
+     * @return array<int, array<string, string>> Translated messages keeping original speaker names unchanged
      *
      * @example Chat translation
      * ```php
