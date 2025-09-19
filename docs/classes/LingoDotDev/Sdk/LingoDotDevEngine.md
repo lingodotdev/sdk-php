@@ -6,17 +6,11 @@ to detect the locale of free-form text. The engine handles request batching,
 progress reporting, and surfacing validation or transport errors.
 
 Example (basic setup):
-<pre><code class="language-php">
-<?php
-$engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
-</code></pre>
+    $engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
 
 Example (Laravel integration):
-<pre><code class="language-php">
-<?php
-$engine = new LingoDotDevEngine(['apiKey' => config('services.lingodotdev.api_key')]);
-$engine->localizeText($request->message, ['sourceLocale' => 'en', 'targetLocale' => 'es']);
-</code></pre>
+    $engine = new LingoDotDevEngine(['apiKey' => config('services.lingodotdev.api_key')]);
+    $engine->localizeText($request->message, ['sourceLocale' => 'en', 'targetLocale' => 'es']);
 
 ***
 
@@ -38,8 +32,8 @@ public __construct(array{apiKey: string, apiUrl?: string, batchSize?: int, ideal
 
 **Parameters:**
 
-| Parameter | Type                                                                                  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-|-----------|---------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Parameter | Type                                                                                  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+|-----------|---------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `$config` | **array{apiKey: string, apiUrl?: string, batchSize?: int, idealBatchItemSize?: int}** | Configuration options:
     - 'apiKey' (string, required): Your API token
     - 'apiUrl' (string): API base URL (default: https://engine.lingo.dev)
@@ -47,14 +41,11 @@ public __construct(array{apiKey: string, apiUrl?: string, batchSize?: int, ideal
     - 'idealBatchItemSize' (int): Max words per request, 1-2500 (default: 250)
 
 Example:
-<pre><code class="language-php">
-<?php
-$engine = new LingoDotDevEngine([
-    'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
-    'batchSize' => 100,
-    'idealBatchItemSize' => 1000,
-]);
-</code></pre> |
+    $engine = new LingoDotDevEngine([
+        'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+        'batchSize' => 100,
+        'idealBatchItemSize' => 1000,
+    ]); |
 
 **Throws:**
 
@@ -86,6 +77,11 @@ public localizeObject(array<string,mixed> $obj, array{targetLocale: string, sour
 **Return Value:**
 
 Translated data preserving original structure and non-text values
+
+Example:
+    $content = ['greeting' => 'Hello'];
+    $engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
+    $engine->localizeObject($content, ['sourceLocale' => 'en', 'targetLocale' => 'fr']);
 
 **Throws:**
 
@@ -120,6 +116,20 @@ public localizeText(string $text, array{targetLocale: string, sourceLocale?: str
 
 Translated text, or empty string if translation unavailable
 
+Examples:
+    $engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
+    $engine->localizeText('Hello, world!', ['sourceLocale' => 'en', 'targetLocale' => 'es']);
+
+    $engine->localizeText(
+        'This is a very long text that needs translation...',
+        ['sourceLocale' => 'en', 'targetLocale' => 'es'],
+        function (int $progress): void {
+            echo 'Translation progress: ' . $progress . "%%\n";
+        }
+    );
+
+    $engine->localizeText('Bonjour le monde', ['sourceLocale' => null, 'targetLocale' => 'en']);
+
 **Throws:**
 
 When required params are missing or invalid
@@ -134,15 +144,15 @@ When API rejects or fails to process the request
 Localize a string into multiple languages and return texts in order.
 
 ```php
-public batchLocalizeText(string $text, array{sourceLocale: string, targetLocales: array<int,string>, fast?: bool} $params): string[]
+public batchLocalizeText(string $text, array{sourceLocale: string, targetLocales: string[], fast?: bool} $params): string[]
 ```
 
 **Parameters:**
 
-| Parameter | Type                                                                           | Description                                                                                                                                                                                                                                                                                                    |
-|-----------|--------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `$text`   | **string**                                                                     | Text content to translate into multiple languages                                                                                                                                                                                                                                                              |
-| `$params` | **array{sourceLocale: string, targetLocales: array<int,string>, fast?: bool}** | Batch translation options shared by all target locales:
+| Parameter | Type                                                                  | Description                                                                                                                                                                                                                                                                                                    |
+|-----------|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$text`   | **string**                                                            | Text content to translate into multiple languages                                                                                                                                                                                                                                                              |
+| `$params` | **array{sourceLocale: string, targetLocales: string[], fast?: bool}** | Batch translation options shared by all target locales:
 - 'sourceLocale' (string, required): Language code of the original text (e.g., 'en')
 - 'targetLocales' (string[], required): Array of language codes to translate into (e.g., ['es', 'fr', 'de'])
 - 'fast' (bool): Trade translation quality for speed |
@@ -150,6 +160,13 @@ public batchLocalizeText(string $text, array{sourceLocale: string, targetLocales
 **Return Value:**
 
 Array of translated texts in same order as targetLocales parameter
+
+Example:
+    $engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
+    $engine->batchLocalizeText('Hello, world!', [
+        'sourceLocale' => 'en',
+        'targetLocales' => ['es', 'fr', 'de'],
+    ]);
 
 **Throws:**
 
@@ -165,7 +182,7 @@ When an individual localization request fails
 Localize a chat transcript while preserving speaker names.
 
 ```php
-public localizeChat(array<int,array{name: string, text: string}> $chat, array{targetLocale: string, sourceLocale?: string|null, fast?: bool, reference?: array<string,mixed>|null} $params, callable|null $progressCallback = null): array<int,array<string,string>>
+public localizeChat(array<int,array{name: string, text: string}> $chat, array{targetLocale: string, sourceLocale?: string|null, fast?: bool, reference?: array<string,mixed>|null} $params, callable|null $progressCallback = null): array<int,array{name: string, text: string}>
 ```
 
 **Parameters:**
@@ -185,6 +202,14 @@ public localizeChat(array<int,array{name: string, text: string}> $chat, array{ta
 **Return Value:**
 
 Translated messages keeping original speaker names unchanged
+
+Example:
+    $conversation = [
+        ['name' => 'Alice', 'text' => 'Hello, how are you?'],
+        ['name' => 'Bob', 'text' => 'I am fine, thank you!'],
+    ];
+    $engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
+    $engine->localizeChat($conversation, ['sourceLocale' => 'en', 'targetLocale' => 'de']);
 
 **Throws:**
 
@@ -212,6 +237,10 @@ public recognizeLocale(string $text): string
 **Return Value:**
 
 ISO language code detected by the API (e.g., 'en', 'es', 'zh')
+
+Example:
+    $engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
+    $engine->recognizeLocale('Bonjour le monde');
 
 **Throws:**
 
