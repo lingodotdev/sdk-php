@@ -167,7 +167,7 @@ class LingoDotDevEngine
      *     - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
      *     - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
      *     - 'fast' (bool): Trade translation quality for speed
-     *     - 'reference' (array<string, mixed>|null): Context or glossary terms to guide translation
+     *     - 'reference' (array<string, mixed>|null): Context data or glossary terms to guide translation
      * @param null|callable(int, mixed, mixed): void $progressCallback Callback invoked with completion percentage (0-100), current chunk, and processed chunk
      *
      * @return array<string, mixed> Translated content maintaining original structure
@@ -225,7 +225,7 @@ class LingoDotDevEngine
      * @param string $targetLocale Language code to translate into (e.g., 'fr', 'de')
      * @param array<string, mixed> $payload Content chunk with optional reference data for context:
      *     - 'data' (array<string, mixed>): Chunk data submitted for translation
-     *     - 'reference' (array<string, mixed>|null): Additional context for the translation request
+     *     - 'reference' (array<string, mixed>|null): Context data or glossary terms to guide translation
      * @param string $workflowId Unique identifier for tracking related translation requests
      * @param bool $fast Enable faster translation at potential quality tradeoff
      *
@@ -372,7 +372,7 @@ class LingoDotDevEngine
      *     - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
      *     - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
      *     - 'fast' (bool): Trade translation quality for speed
-     *     - 'reference' (array<string, mixed>|null): Context or glossary terms to guide translation
+     *     - 'reference' (array<string, mixed>|null): Context data or glossary terms to guide translation
      * @param null|callable(int, mixed, mixed): void $progressCallback Invoked per batch with (percentage complete, current batch, translated batch)
      *
      * @return array<string, mixed> Translated data preserving original structure and non-text values
@@ -430,7 +430,7 @@ class LingoDotDevEngine
      *     - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
      *     - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
      *     - 'fast' (bool): Trade translation quality for speed
-     *     - 'reference' (array<string, mixed>|null): Context, terminology, or style guidelines
+     *     - 'reference' (array<string, mixed>|null): Context data or glossary terms to guide translation
      * @param null|callable(int): void $progressCallback Called with completion percentage (0-100) during processing
      *
      * @return string Translated text, or empty string if translation unavailable
@@ -571,7 +571,7 @@ class LingoDotDevEngine
      * @param array<string, mixed> $params Batch translation options shared by all target locales:
      *     - 'sourceLocale' (string, required): Language code of the original text (e.g., 'en')
      *     - 'targetLocales' (string[], required): Array of language codes to translate into (e.g., ['es', 'fr', 'de'])
-     *     - 'fast' (bool): Apply speed optimization to all translations
+     *     - 'fast' (bool): Trade translation quality for speed
      *
      * @return string[] Array of translated texts in same order as targetLocales parameter
      *
@@ -631,8 +631,8 @@ class LingoDotDevEngine
      * @param array<string, mixed> $params Chat translation options defining locale behavior and context:
      *     - 'targetLocale' (string, required): Language code to translate messages into (e.g., 'es', 'fr')
      *     - 'sourceLocale' (string|null): Language code of original messages, null for auto-detection
-     *     - 'fast' (bool): Optimize for speed over translation quality
-     *     - 'reference' (array<string, mixed>|null): Conversation context or domain-specific terminology
+     *     - 'fast' (bool): Trade translation quality for speed
+     *     - 'reference' (array<string, mixed>|null): Context data or glossary terms to guide translation
      * @param null|callable(int): void $progressCallback Called with completion percentage (0-100) during processing
      *
      * @return array<int, array<string, string>> Translated messages keeping original speaker names unchanged
