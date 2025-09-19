@@ -31,31 +31,29 @@ use Respect\Validation\Validator as v;
 class LingoDotDevEngine
 {
     /**
-     * Configuration options for the Engine
+     * Configuration options for the Engine.
      *
-     * @var array
+     * @var array<string, mixed>
      */
     protected $config;
 
     /**
-     * HTTP client for API requests
+     * HTTP client for API requests.
      *
      * @var Client
      */
     private $_httpClient;
 
     /**
-     * Build an engine instance with your API key and optional batch settings.
+     * Build an engine with your API key and optional batching limits.
      *
-     * Provide at least ['apiKey' => '...']. You may override:
-     * - 'apiUrl' with a valid base URL for the service (defaults to https://engine.lingo.dev).
-     * - 'batchSize' with an integer between 1 and 250 to control items sent per request.
-     * - 'idealBatchItemSize' with an integer between 1 and 2500 to cap words per request.
-     * Invalid values trigger \InvalidArgumentException.
+     * @param array<string, mixed> $config Configuration options:
+     *                                      - 'apiKey' (string, required): Your API token
+     *                                      - 'apiUrl' (string): API base URL (default: https://engine.lingo.dev)
+     *                                      - 'batchSize' (int): Records per request, 1-250 (default: 25)
+     *                                      - 'idealBatchItemSize' (int): Max words per request, 1-2500 (default: 250)
      *
-     * @param array $config HTTP client credentials and optional batching overrides.
-     *
-     * @throws \InvalidArgumentException When the API key is missing or a value fails validation.
+     * @throws \InvalidArgumentException When API key is missing or values fail validation
      */
     public function __construct(array $config = [])
     {
@@ -95,13 +93,14 @@ class LingoDotDevEngine
     }
 
     /**
-     * Localize content using the Lingo.dev API
-     * 
-     * @param array         $payload          The content to be localized
-     * @param array         $params           Localization parameters including source/target locales and fast mode option
-     * @param callable|null $progressCallback Optional callback function to report progress (0-100)
-     * 
-     * @return   array Localized content
+     * Localize content using the Lingo.dev API.
+     *
+     * @param array<string, mixed>         $payload          Content to translate, structured as key-value pairs
+     * @param array<string, mixed>         $params           Translation configuration options
+     * @param callable(int, mixed, mixed): void|null $progressCallback Callback invoked with completion percentage (0-100), current chunk, and processed chunk
+     *
+     * @return array<string, mixed> Translated content maintaining original structure
+     *
      * @internal
      */
     protected function localizeRaw(array $payload, array $params, ?callable $progressCallback = null): array
@@ -149,15 +148,18 @@ class LingoDotDevEngine
     }
 
     /**
-     * Localize a single chunk of content
-     * 
-     * @param string|null $sourceLocale Source locale
-     * @param string      $targetLocale Target locale
-     * @param array       $payload      Payload containing the chunk to be localized
-     * @param string      $workflowId   Workflow ID
-     * @param bool        $fast         Whether to use fast mode
-     * 
-     * @return array Localized chunk
+     * Localize a single chunk of content.
+     *
+     * @param string|null          $sourceLocale Language code of the original text (e.g., 'en', 'es'), null for auto-detection
+     * @param string               $targetLocale Language code to translate into (e.g., 'fr', 'de')
+     * @param array<string, mixed> $payload      Content chunk with optional reference data for context
+     * @param string               $workflowId   Unique identifier for tracking related translation requests
+     * @param bool                 $fast         Enable faster translation at potential quality tradeoff
+     *
+     * @return array<string, mixed> Translated chunk maintaining original structure
+     *
+     * @throws \InvalidArgumentException When reference is not an array
+     * @throws \RuntimeException When API request fails
      */
     private function _localizeChunk(?string $sourceLocale, string $targetLocale, array $payload, string $workflowId, bool $fast): array
     {
@@ -214,11 +216,11 @@ class LingoDotDevEngine
     }
 
     /**
-     * Extract payload chunks based on the ideal chunk size
-     * 
-     * @param array $payload The payload to be chunked
-     * 
-     * @return array An array of payload chunks
+     * Extract payload chunks based on the ideal chunk size.
+     *
+     * @param array<string, mixed> $payload The payload to be chunked
+     *
+     * @return array<int, array<string, mixed>> Array of payload chunks
      */
     private function _extractPayloadChunks(array $payload): array
     {
@@ -252,11 +254,11 @@ class LingoDotDevEngine
     }
 
     /**
-     * Count words in a record or array
-     * 
+     * Count words in a record or array.
+     *
      * @param mixed $payload The payload to count words in
-     * 
-     * @return int The total number of words
+     *
+     * @return int Total number of words
      */
     private function _countWordsInRecord($payload): int
     {
@@ -280,8 +282,8 @@ class LingoDotDevEngine
     }
 
     /**
-     * Generate a unique ID
-     * 
+     * Generate a unique ID.
+     *
      * @return string Unique ID
      */
     private function _createId(): string
@@ -290,24 +292,20 @@ class LingoDotDevEngine
     }
 
     /**
-     * Localize every string in a nested array while keeping the array structure.
+     * Localize every string in a nested array while keeping its shape intact.
      *
-     * Require $params['targetLocale'] with the desired language code. Optionally
-     * pass:
-     * - 'sourceLocale' with the current language code (string or null).
-     * - 'fast' with a boolean forwarded to the API.
-     * - 'reference' with an array of supplemental data forwarded unchanged.
-     * The optional callback receives (int $progress, array $chunk, array $localizedChunk)
-     * for each batch the engine submits.
+     * @param array<string, mixed> $obj              Nested data structure containing text to translate
+     * @param array<string, mixed> $params           Parameters:
+     *                                                - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
+     *                                                - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
+     *                                                - 'fast' (bool): Trade translation quality for speed
+     *                                                - 'reference' (array): Context or glossary terms to guide translation
+     * @param callable(int, mixed, mixed): void|null $progressCallback Invoked per batch with (percentage complete, current batch, translated batch)
      *
-     * @param array         $obj              Input data whose string entries should be localized.
-     * @param array         $params           Request parameters for locales and API options.
-     * @param callable|null $progressCallback Progress hook fired per batch.
+     * @return array<string, mixed> Translated data preserving original structure and non-text values
      *
-     * @return array Localized data mirroring the original structure.
-     *
-     * @throws \InvalidArgumentException When required params or reference data are invalid.
-     * @throws \RuntimeException         When the API rejects or fails to process the request.
+     * @throws \InvalidArgumentException When required params or reference data are invalid
+     * @throws \RuntimeException When API rejects or fails to process the request
      */
     public function localizeObject(array $obj, array $params, ?callable $progressCallback = null): array
     {
@@ -323,24 +321,20 @@ class LingoDotDevEngine
     }
 
     /**
-     * Translate a single string and return the localized text.
+     * Localize a single string and return the translated text.
      *
-     * Set $params['targetLocale'] to the destination language code. You may
-     * also provide:
-     * - 'sourceLocale' with the existing language code (string or null).
-     * - 'fast' with a boolean forwarded to the API.
-     * - 'reference' with an array of supplemental data forwarded unchanged.
-     * The optional callback receives the completion percentage (0-100) for each
-     * processed batch.
+     * @param string                          $text             Text content to translate
+     * @param array<string, mixed>            $params           Parameters:
+     *                                                          - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
+     *                                                          - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
+     *                                                          - 'fast' (bool): Prioritize speed over translation quality
+     *                                                          - 'reference' (array): Context, terminology, or style guidelines for translation
+     * @param callable(int): void|null $progressCallback Called with completion percentage (0-100) during processing
      *
-     * @param string        $text             Source text to localize.
-     * @param array         $params           Request parameters for locales and API options.
-     * @param callable|null $progressCallback Progress hook fired with an integer percentage.
+     * @return string Translated text, or empty string if translation unavailable
      *
-     * @return string Localized text (empty string if the API omits the field).
-     *
-     * @throws \InvalidArgumentException When required params are missing or invalid.
-     * @throws \RuntimeException         When the API rejects or fails to process the request.
+     * @throws \InvalidArgumentException When required params are missing or invalid
+     * @throws \RuntimeException When API rejects or fails to process the request
      */
     public function localizeText(string $text, array $params, ?callable $progressCallback = null): string
     {
@@ -358,20 +352,18 @@ class LingoDotDevEngine
     }
 
     /**
-     * Translate a string into several languages and return the results in order.
+     * Localize a string into multiple languages and return texts in order.
      *
-     * Expect $params['sourceLocale'] with the language code of the input text
-     * and $params['targetLocales'] with an array of destination language codes.
-     * Optional 'fast' flags are forwarded to each {@see localizeText()} call.
-     * Any failure from an individual request surfaces immediately.
+     * @param string               $text   Text content to translate into multiple languages
+     * @param array<string, mixed> $params Parameters:
+     *                                     - 'sourceLocale' (string, required): Language code of the original text (e.g., 'en')
+     *                                     - 'targetLocales' (string[], required): Array of language codes to translate into (e.g., ['es', 'fr', 'de'])
+     *                                     - 'fast' (bool): Apply speed optimization to all translations
      *
-     * @param string $text   Source text to localize.
-     * @param array  $params Request parameters describing the source and target languages.
+     * @return string[] Array of translated texts in same order as targetLocales parameter
      *
-     * @return array List of localized strings matching the order of target locales.
-     *
-     * @throws \InvalidArgumentException When required params are missing or invalid.
-     * @throws \RuntimeException         When an individual localization request fails.
+     * @throws \InvalidArgumentException When required params are missing or invalid
+     * @throws \RuntimeException When an individual localization request fails
      */
     public function batchLocalizeText(string $text, array $params): array
     {
@@ -398,25 +390,20 @@ class LingoDotDevEngine
     }
 
     /**
-     * Localize a chat transcript while keeping speaker names untouched.
+     * Localize a chat transcript while preserving speaker names.
      *
-     * Each entry in $chat must provide 'name' and 'text'. Supply
-     * $params['targetLocale'] with the destination language code. Optionally
-     * pass:
-     * - 'sourceLocale' with the current language code (string or null).
-     * - 'fast' with a boolean forwarded to the API.
-     * - 'reference' with an array of supplemental data forwarded unchanged.
-     * The optional callback receives the completion percentage (0-100) for each
-     * processed batch.
+     * @param array<int, array{name: string, text: string}> $chat             Conversation history with speaker names and their messages
+     * @param array<string, mixed>                           $params           Parameters:
+     *                                                                          - 'targetLocale' (string, required): Language code to translate messages into (e.g., 'es', 'fr')
+     *                                                                          - 'sourceLocale' (string|null): Language of original messages, null for auto-detection
+     *                                                                          - 'fast' (bool): Optimize for speed over translation quality
+     *                                                                          - 'reference' (array): Conversation context or domain-specific terminology
+     * @param callable(int): void|null                       $progressCallback Called with completion percentage (0-100) during processing
      *
-     * @param array         $chat             Ordered list of chat message arrays with 'name' and 'text'.
-     * @param array         $params           Request parameters for locales and API options.
-     * @param callable|null $progressCallback Progress hook fired with an integer percentage.
+     * @return array<int, array{name: string, text: string}> Translated messages keeping original speaker names unchanged
      *
-     * @return array Localized chat messages with original names preserved.
-     *
-     * @throws \InvalidArgumentException When chat entries or params are invalid.
-     * @throws \RuntimeException         When the API rejects or fails to process the request.
+     * @throws \InvalidArgumentException When chat entries or params are invalid
+     * @throws \RuntimeException When API rejects or fails to process the request
      */
     public function localizeChat(array $chat, array $params, ?callable $progressCallback = null): array
     {
@@ -448,17 +435,14 @@ class LingoDotDevEngine
     }
 
     /**
-     * Ask the API to identify the locale of the provided text.
+     * Identify the locale of the provided text.
      *
-     * Whitespace-only strings are rejected. On success the API's 'locale'
-     * field is returned directly.
+     * @param string $text Sample text for language detection (longer text improves accuracy)
      *
-     * @param string $text Text whose locale should be recognised.
+     * @return string ISO language code detected by the API (e.g., 'en', 'es', 'zh')
      *
-     * @return string Locale code provided by the API.
-     *
-     * @throws \InvalidArgumentException When the input text is blank after trimming.
-     * @throws \RuntimeException         When the API response is invalid or the request fails.
+     * @throws \InvalidArgumentException When input text is blank after trimming
+     * @throws \RuntimeException When API response is invalid or request fails
      */
     public function recognizeLocale(string $text): string
     {
