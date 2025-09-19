@@ -6,6 +6,17 @@ to detect the locale of free-form text. The engine handles request batching,
 progress reporting, and surfacing validation or transport errors.
 
 Example (basic setup):
+<pre><code class="language-php">
+<?php
+$engine = new LingoDotDevEngine(['apiKey' => $_ENV['LINGODOTDEV_API_KEY']]);
+</code></pre>
+
+Example (Laravel integration):
+<pre><code class="language-php">
+<?php
+$engine = new LingoDotDevEngine(['apiKey' => config('services.lingodotdev.api_key')]);
+$engine->localizeText($request->message, ['sourceLocale' => 'en', 'targetLocale' => 'es']);
+</code></pre>
 
 ***
 
@@ -22,18 +33,28 @@ Example (basic setup):
 Build an engine with your API key and optional batching limits.
 
 ```php
-public __construct(array<string,mixed> $config = []): mixed
+public __construct(array{apiKey: string, apiUrl?: string, batchSize?: int, idealBatchItemSize?: int} $config = []): mixed
 ```
 
 **Parameters:**
 
-| Parameter | Type                    | Description                                                                                                                                                                                                                                                                         |
-|-----------|-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `$config` | **array<string,mixed>** | Configuration options:
-- 'apiKey' (string, required): Your API token
-- 'apiUrl' (string): API base URL (default: https://engine.lingo.dev)
-- 'batchSize' (int): Records per request, 1-250 (default: 25)
-- 'idealBatchItemSize' (int): Max words per request, 1-2500 (default: 250) |
+| Parameter | Type                                                                                  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+|-----------|---------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$config` | **array{apiKey: string, apiUrl?: string, batchSize?: int, idealBatchItemSize?: int}** | Configuration options:
+    - 'apiKey' (string, required): Your API token
+    - 'apiUrl' (string): API base URL (default: https://engine.lingo.dev)
+    - 'batchSize' (int): Records per request, 1-250 (default: 25)
+    - 'idealBatchItemSize' (int): Max words per request, 1-2500 (default: 250)
+
+Example:
+<pre><code class="language-php">
+<?php
+$engine = new LingoDotDevEngine([
+    'apiKey' => $_ENV['LINGODOTDEV_API_KEY'],
+    'batchSize' => 100,
+    'idealBatchItemSize' => 1000,
+]);
+</code></pre> |
 
 **Throws:**
 
@@ -47,20 +68,20 @@ When API key is missing or values fail validation
 Localize every string in a nested array while keeping its shape intact.
 
 ```php
-public localizeObject(array<string,mixed> $obj, array<string,mixed> $params, callable|null $progressCallback = null): array<string,mixed>
+public localizeObject(array<string,mixed> $obj, array{targetLocale: string, sourceLocale?: string|null, fast?: bool, reference?: array<string,mixed>|null} $params, callable|null $progressCallback = null): array<string,mixed>
 ```
 
 **Parameters:**
 
-| Parameter           | Type                    | Description                                                                                                                                                                                                                                                                                                                                                                                                         |
-|---------------------|-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `$obj`              | **array<string,mixed>** | Nested data structure containing text to translate                                                                                                                                                                                                                                                                                                                                                                  |
-| `$params`           | **array<string,mixed>** | Translation options controlling locale, speed, and contextual reference data:
+| Parameter           | Type                                                                                                             | Description                                                                                                                                                                                                                                                                                                                                                                                                         |
+|---------------------|------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$obj`              | **array<string,mixed>**                                                                                          | Nested data structure containing text to translate                                                                                                                                                                                                                                                                                                                                                                  |
+| `$params`           | **array{targetLocale: string, sourceLocale?: string\|null, fast?: bool, reference?: array<string,mixed>\|null}** | Translation options controlling locale, speed, and contextual reference data:
 - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
 - 'sourceLocale' (string\|null): Language code of original text, null for auto-detection
 - 'fast' (bool): Trade translation quality for speed
 - 'reference' (array<string, mixed>\|null): Context data or glossary terms to guide translation |
-| `$progressCallback` | **callable\|null**      | Invoked per batch with (percentage complete, current batch, translated batch)                                                                                                                                                                                                                                                                                                                                       |
+| `$progressCallback` | **callable\|null**                                                                                               | Invoked per batch with (percentage complete, current batch, translated batch)                                                                                                                                                                                                                                                                                                                                       |
 
 **Return Value:**
 
@@ -80,20 +101,20 @@ When API rejects or fails to process the request
 Localize a single string and return the translated text.
 
 ```php
-public localizeText(string $text, array<string,mixed> $params, callable|null $progressCallback = null): string
+public localizeText(string $text, array{targetLocale: string, sourceLocale?: string|null, fast?: bool, reference?: array<string,mixed>|null} $params, callable|null $progressCallback = null): string
 ```
 
 **Parameters:**
 
-| Parameter           | Type                    | Description                                                                                                                                                                                                                                                                                                                                                                                                                  |
-|---------------------|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `$text`             | **string**              | Text content to translate                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `$params`           | **array<string,mixed>** | Translation options such as locale hints, speed preference, and contextual references:
+| Parameter           | Type                                                                                                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                  |
+|---------------------|------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$text`             | **string**                                                                                                       | Text content to translate                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `$params`           | **array{targetLocale: string, sourceLocale?: string\|null, fast?: bool, reference?: array<string,mixed>\|null}** | Translation options such as locale hints, speed preference, and contextual references:
 - 'targetLocale' (string, required): Language code to translate into (e.g., 'es', 'fr')
 - 'sourceLocale' (string\|null): Language code of original text, null for auto-detection
 - 'fast' (bool): Trade translation quality for speed
 - 'reference' (array<string, mixed>\|null): Context data or glossary terms to guide translation |
-| `$progressCallback` | **callable\|null**      | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                                                                                                                  |
+| `$progressCallback` | **callable\|null**                                                                                               | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                                                                                                                  |
 
 **Return Value:**
 
@@ -113,15 +134,15 @@ When API rejects or fails to process the request
 Localize a string into multiple languages and return texts in order.
 
 ```php
-public batchLocalizeText(string $text, array<string,mixed> $params): string[]
+public batchLocalizeText(string $text, array{sourceLocale: string, targetLocales: array<int,string>, fast?: bool} $params): string[]
 ```
 
 **Parameters:**
 
-| Parameter | Type                    | Description                                                                                                                                                                                                                                                                                                    |
-|-----------|-------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `$text`   | **string**              | Text content to translate into multiple languages                                                                                                                                                                                                                                                              |
-| `$params` | **array<string,mixed>** | Batch translation options shared by all target locales:
+| Parameter | Type                                                                           | Description                                                                                                                                                                                                                                                                                                    |
+|-----------|--------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$text`   | **string**                                                                     | Text content to translate into multiple languages                                                                                                                                                                                                                                                              |
+| `$params` | **array{sourceLocale: string, targetLocales: array<int,string>, fast?: bool}** | Batch translation options shared by all target locales:
 - 'sourceLocale' (string, required): Language code of the original text (e.g., 'en')
 - 'targetLocales' (string[], required): Array of language codes to translate into (e.g., ['es', 'fr', 'de'])
 - 'fast' (bool): Trade translation quality for speed |
@@ -144,22 +165,22 @@ When an individual localization request fails
 Localize a chat transcript while preserving speaker names.
 
 ```php
-public localizeChat(array<int,array<string,string>> $chat, array<string,mixed> $params, callable|null $progressCallback = null): array<int,array<string,string>>
+public localizeChat(array<int,array{name: string, text: string}> $chat, array{targetLocale: string, sourceLocale?: string|null, fast?: bool, reference?: array<string,mixed>|null} $params, callable|null $progressCallback = null): array<int,array<string,string>>
 ```
 
 **Parameters:**
 
-| Parameter           | Type                                | Description                                                                                                                                                                                                                                                                                                                                                                                                       |
-|---------------------|-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `$chat`             | **array<int,array<string,string>>** | Conversation history with speaker names and their messages. Each entry must include:
+| Parameter           | Type                                                                                                             | Description                                                                                                                                                                                                                                                                                                                                                                                                       |
+|---------------------|------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$chat`             | **array<int,array{name: string, text: string}>**                                                                 | Conversation history with speaker names and their messages. Each entry must include:
 - 'name' (string): Speaker label to preserve
 - 'text' (string): Message content to translate                                                                                                                                                                                                                                 |
-| `$params`           | **array<string,mixed>**             | Chat translation options defining locale behavior and context:
+| `$params`           | **array{targetLocale: string, sourceLocale?: string\|null, fast?: bool, reference?: array<string,mixed>\|null}** | Chat translation options defining locale behavior and context:
 - 'targetLocale' (string, required): Language code to translate messages into (e.g., 'es', 'fr')
 - 'sourceLocale' (string\|null): Language code of original messages, null for auto-detection
 - 'fast' (bool): Trade translation quality for speed
 - 'reference' (array<string, mixed>\|null): Context data or glossary terms to guide translation |
-| `$progressCallback` | **callable\|null**                  | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                                                                                                       |
+| `$progressCallback` | **callable\|null**                                                                                               | Called with completion percentage (0-100) during processing                                                                                                                                                                                                                                                                                                                                                       |
 
 **Return Value:**
 
