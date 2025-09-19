@@ -97,7 +97,7 @@ class LingoDotDevEngine
      *
      * @param array<string, mixed>         $payload          Content to translate, structured as key-value pairs
      * @param array<string, mixed>         $params           Translation configuration options
-     * @param callable(int, mixed, mixed): void|null $progressCallback Callback invoked with completion percentage (0-100), current chunk, and processed chunk
+     * @param null|callable(int, mixed, mixed): void $progressCallback Callback invoked with completion percentage (0-100), current chunk, and processed chunk
      *
      * @return array<string, mixed> Translated content maintaining original structure
      *
@@ -300,7 +300,7 @@ class LingoDotDevEngine
      *                                                - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
      *                                                - 'fast' (bool): Trade translation quality for speed
      *                                                - 'reference' (array): Context or glossary terms to guide translation
-     * @param callable(int, mixed, mixed): void|null $progressCallback Invoked per batch with (percentage complete, current batch, translated batch)
+     * @param null|callable(int, mixed, mixed): void $progressCallback Invoked per batch with (percentage complete, current batch, translated batch)
      *
      * @return array<string, mixed> Translated data preserving original structure and non-text values
      *
@@ -329,7 +329,7 @@ class LingoDotDevEngine
      *                                                          - 'sourceLocale' (string|null): Language code of original text, null for auto-detection
      *                                                          - 'fast' (bool): Prioritize speed over translation quality
      *                                                          - 'reference' (array): Context, terminology, or style guidelines for translation
-     * @param callable(int): void|null $progressCallback Called with completion percentage (0-100) during processing
+     * @param null|callable(int): void $progressCallback Called with completion percentage (0-100) during processing
      *
      * @return string Translated text, or empty string if translation unavailable
      *
@@ -398,7 +398,7 @@ class LingoDotDevEngine
      *                                                                          - 'sourceLocale' (string|null): Language of original messages, null for auto-detection
      *                                                                          - 'fast' (bool): Optimize for speed over translation quality
      *                                                                          - 'reference' (array): Conversation context or domain-specific terminology
-     * @param callable(int): void|null                       $progressCallback Called with completion percentage (0-100) during processing
+     * @param null|callable(int): void                       $progressCallback Called with completion percentage (0-100) during processing
      *
      * @return array<int, array{name: string, text: string}> Translated messages keeping original speaker names unchanged
      *
