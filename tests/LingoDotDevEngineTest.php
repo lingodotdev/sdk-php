@@ -41,15 +41,61 @@ class LingoDotDevEngineTest extends TestCase
     {
         $mock = new MockHandler($responses);
         $handlerStack = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handlerStack]);
+        $client = new Client([
+            'handler' => $handlerStack,
+            'headers' => [
+                'Content-Type' => 'application/json; charset=utf-8',
+                'X-API-Key' => 'test-api-key'
+            ]
+        ]);
 
-        $engine = new LingoDotDevEngine(['apiKey' => 'test-api-key']);
-        
+        $engine = new LingoDotDevEngine([
+            'apiKey' => 'test-api-key',
+            'engineId' => 'test-engine'
+        ]);
+
         $reflection = new ReflectionClass($engine);
         $property = $reflection->getProperty('_httpClient');
         $property->setAccessible(true);
         $property->setValue($engine, $client);
-        
+
+        return $engine;
+    }
+
+    /**
+     * Creates a mock engine with history tracking
+     *
+     * @param array $responses Array of mock responses
+     * @param array &$history  Reference to history array for capturing requests
+     * @param array $config    Engine config overrides
+     *
+     * @return LingoDotDevEngine Mocked engine instance
+     */
+    private function _createMockEngineWithHistory($responses, &$history, $config = [])
+    {
+        $mock = new MockHandler($responses);
+        $handlerStack = HandlerStack::create($mock);
+        $handlerStack->push(\GuzzleHttp\Middleware::history($history));
+        $engineConfig = array_merge([
+            'apiKey' => 'test-api-key',
+            'engineId' => 'test-engine'
+        ], $config);
+
+        $client = new Client([
+            'handler' => $handlerStack,
+            'headers' => [
+                'Content-Type' => 'application/json; charset=utf-8',
+                'X-API-Key' => $engineConfig['apiKey']
+            ]
+        ]);
+
+        $engine = new LingoDotDevEngine($engineConfig);
+
+        $reflection = new ReflectionClass($engine);
+        $property = $reflection->getProperty('_httpClient');
+        $property->setAccessible(true);
+        $property->setValue($engine, $client);
+
         return $engine;
     }
 
@@ -60,16 +106,31 @@ class LingoDotDevEngineTest extends TestCase
      */
     public function testConstructorWithValidConfig()
     {
-        $engine = new LingoDotDevEngine(['apiKey' => 'test-api-key']);
+        $engine = new LingoDotDevEngine([
+            'apiKey' => 'test-api-key',
+            'engineId' => 'test-engine'
+        ]);
         $this->assertInstanceOf(LingoDotDevEngine::class, $engine);
     }
 
     /**
-     * Tests constructor with invalid configuration
+     * Tests constructor requires engineId
      *
      * @return void
      */
-    public function testConstructorWithInvalidConfig()
+    public function testConstructorRequiresEngineId()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Engine ID is required');
+        new LingoDotDevEngine(['apiKey' => 'test-api-key']);
+    }
+
+    /**
+     * Tests constructor requires apiKey
+     *
+     * @return void
+     */
+    public function testConstructorRequiresApiKey()
     {
         $this->expectException(\InvalidArgumentException::class);
         new LingoDotDevEngine([]);
@@ -274,7 +335,7 @@ class LingoDotDevEngineTest extends TestCase
             ]
         );
     }
-    
+
     /**
      * Tests the reference parameter handling
      *
@@ -282,43 +343,30 @@ class LingoDotDevEngineTest extends TestCase
      */
     public function testReferenceParameterHandling()
     {
-        $mock = new MockHandler([
-            new Response(200, [], json_encode(['data' => ['text' => 'Hola, mundo!']]))
-        ]);
-        
-        $requestData = null;
         $history = [];
-        $historyMiddleware = \GuzzleHttp\Middleware::history($history);
-        
-        $handlerStack = HandlerStack::create($mock);
-        $handlerStack->push($historyMiddleware);
-        
-        $client = new Client(['handler' => $handlerStack]);
-        
-        $engine = new LingoDotDevEngine(['apiKey' => 'test-api-key']);
-        
-        $reflection = new ReflectionClass($engine);
-        $property = $reflection->getProperty('_httpClient');
-        $property->setAccessible(true);
-        $property->setValue($engine, $client);
-        
+        $engine = $this->_createMockEngineWithHistory(
+            [new Response(200, [], json_encode(['data' => ['text' => 'Hola, mundo!']]))],
+            $history
+        );
+
         $engine->localizeText('Hello, world!', [
             'sourceLocale' => 'en',
             'targetLocale' => 'es'
         ]);
-        
+
         $this->assertCount(1, $history);
         $request = $history[0]['request'];
         $requestBody = json_decode($request->getBody()->getContents(), true);
-        
-        $this->assertArrayHasKey('reference', $requestBody);
-        $this->assertEquals([], $requestBody['reference']);
-        
+
+        // vNext omits reference when not provided
+        $this->assertArrayNotHasKey('reference', $requestBody);
+
         $this->assertArrayHasKey('params', $requestBody);
-        $this->assertArrayHasKey('locale', $requestBody);
+        $this->assertArrayHasKey('sourceLocale', $requestBody);
+        $this->assertArrayHasKey('targetLocale', $requestBody);
         $this->assertArrayHasKey('data', $requestBody);
-        $this->assertEquals('en', $requestBody['locale']['source']);
-        $this->assertEquals('es', $requestBody['locale']['target']);
+        $this->assertEquals('en', $requestBody['sourceLocale']);
+        $this->assertEquals('es', $requestBody['targetLocale']);
         $this->assertEquals(['text' => 'Hello, world!'], $requestBody['data']);
     }
 
@@ -357,4 +405,214 @@ class LingoDotDevEngineTest extends TestCase
         $this->assertTrue($progressCalled);
         $this->assertEquals(100, $progressValue);
     }
+
+    /**
+     * Tests default apiUrl is api.lingo.dev
+     *
+     * @return void
+     */
+    public function testConfigDefaultApiUrl()
+    {
+        $engine = new LingoDotDevEngine([
+            'apiKey' => 'test-api-key',
+            'engineId' => 'my-engine-id'
+        ]);
+
+        $reflection = new ReflectionClass($engine);
+        $property = $reflection->getProperty('config');
+        $property->setAccessible(true);
+        $config = $property->getValue($engine);
+
+        $this->assertEquals('https://api.lingo.dev', $config['apiUrl']);
+        $this->assertEquals('my-engine-id', $config['engineId']);
+    }
+
+    /**
+     * Tests that explicit apiUrl is preserved even with engineId
+     *
+     * @return void
+     */
+    public function testConfigExplicitApiUrl()
+    {
+        $engine = new LingoDotDevEngine([
+            'apiKey' => 'test-api-key',
+            'engineId' => 'my-engine-id',
+            'apiUrl' => 'https://custom.api.com'
+        ]);
+
+        $reflection = new ReflectionClass($engine);
+        $property = $reflection->getProperty('config');
+        $property->setAccessible(true);
+        $config = $property->getValue($engine);
+
+        $this->assertEquals('https://custom.api.com', $config['apiUrl']);
+    }
+
+    /**
+     * Tests that X-API-Key header is used
+     *
+     * @return void
+     */
+    public function testXApiKeyHeader()
+    {
+        $history = [];
+        $engine = $this->_createMockEngineWithHistory(
+            [new Response(200, [], json_encode(['data' => ['text' => 'Hola']]))],
+            $history,
+            ['engineId' => 'my-engine']
+        );
+
+        $engine->localizeText('Hello', [
+            'sourceLocale' => 'en',
+            'targetLocale' => 'es'
+        ]);
+
+        $this->assertCount(1, $history);
+        $request = $history[0]['request'];
+        $this->assertEquals('test-api-key', $request->getHeaderLine('X-API-Key'));
+        $this->assertEmpty($request->getHeaderLine('Authorization'));
+    }
+
+    /**
+     * Tests localize chunk URL and body format
+     *
+     * @return void
+     */
+    public function testLocalizeChunkUrlAndBody()
+    {
+        $history = [];
+        $engine = $this->_createMockEngineWithHistory(
+            [new Response(200, [], json_encode(['data' => ['text' => 'Hola']]))],
+            $history,
+            ['engineId' => 'my-engine']
+        );
+
+        $engine->localizeText('Hello', [
+            'sourceLocale' => 'en',
+            'targetLocale' => 'es',
+            'fast' => true
+        ]);
+
+        $this->assertCount(1, $history);
+        $request = $history[0]['request'];
+
+        // Check URL
+        $this->assertStringContainsString('/process/my-engine/localize', $request->getUri()->getPath());
+
+        // Check body format
+        $body = json_decode($request->getBody()->getContents(), true);
+        $this->assertEquals(['fast' => true], $body['params']);
+        $this->assertEquals('en', $body['sourceLocale']);
+        $this->assertEquals('es', $body['targetLocale']);
+        $this->assertEquals(['text' => 'Hello'], $body['data']);
+        $this->assertArrayHasKey('sessionId', $body);
+        $this->assertNotEmpty($body['sessionId']);
+
+        // vNext should NOT have workflowId or locale object
+        $this->assertArrayNotHasKey('workflowId', $body['params']);
+        $this->assertArrayNotHasKey('locale', $body);
+    }
+
+    /**
+     * Tests that sessionId is consistent across multiple requests
+     *
+     * @return void
+     */
+    public function testSessionIdConsistentAcrossRequests()
+    {
+        $history = [];
+        $engine = $this->_createMockEngineWithHistory(
+            [
+                new Response(200, [], json_encode(['data' => ['text' => 'Hola']])),
+                new Response(200, [], json_encode(['data' => ['text' => 'Mundo']]))
+            ],
+            $history,
+            ['engineId' => 'my-engine']
+        );
+
+        $engine->localizeText('Hello', [
+            'sourceLocale' => 'en',
+            'targetLocale' => 'es'
+        ]);
+        $engine->localizeText('World', [
+            'sourceLocale' => 'en',
+            'targetLocale' => 'es'
+        ]);
+
+        $body1 = json_decode($history[0]['request']->getBody()->getContents(), true);
+        $body2 = json_decode($history[1]['request']->getBody()->getContents(), true);
+        $this->assertEquals($body1['sessionId'], $body2['sessionId']);
+    }
+
+    /**
+     * Tests that reference is omitted when not provided
+     *
+     * @return void
+     */
+    public function testOmitsReferenceWhenNotProvided()
+    {
+        $history = [];
+        $engine = $this->_createMockEngineWithHistory(
+            [new Response(200, [], json_encode(['data' => ['text' => 'Hola']]))],
+            $history,
+            ['engineId' => 'my-engine']
+        );
+
+        $engine->localizeText('Hello', [
+            'sourceLocale' => 'en',
+            'targetLocale' => 'es'
+        ]);
+
+        $body = json_decode($history[0]['request']->getBody()->getContents(), true);
+        $this->assertArrayNotHasKey('reference', $body);
+    }
+
+    /**
+     * Tests that reference is included when provided
+     *
+     * @return void
+     */
+    public function testIncludesReferenceWhenProvided()
+    {
+        $history = [];
+        $engine = $this->_createMockEngineWithHistory(
+            [new Response(200, [], json_encode(['data' => ['greeting' => 'Hola']]))],
+            $history,
+            ['engineId' => 'my-engine']
+        );
+
+        $engine->localizeObject(
+            ['greeting' => 'Hello'],
+            [
+                'sourceLocale' => 'en',
+                'targetLocale' => 'es',
+                'reference' => ['fr' => ['greeting' => 'Bonjour']]
+            ]
+        );
+
+        $body = json_decode($history[0]['request']->getBody()->getContents(), true);
+        $this->assertArrayHasKey('reference', $body);
+        $this->assertEquals(['fr' => ['greeting' => 'Bonjour']], $body['reference']);
+    }
+
+    /**
+     * Tests recognizeLocale URL
+     *
+     * @return void
+     */
+    public function testRecognizeLocaleUrl()
+    {
+        $history = [];
+        $engine = $this->_createMockEngineWithHistory(
+            [new Response(200, [], json_encode(['locale' => 'fr']))],
+            $history,
+            ['engineId' => 'my-engine']
+        );
+
+        $result = $engine->recognizeLocale('Bonjour le monde');
+
+        $this->assertEquals('fr', $result);
+        $this->assertStringContainsString('/process/recognize', $history[0]['request']->getUri()->getPath());
+    }
+
 }
