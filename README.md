@@ -12,7 +12,7 @@ composer require lingodotdev/sdk
 
 ## Basic Usage
 
-After installing the package, bootstrap the engine with your API key and Engine ID:
+After installing the package, bootstrap the engine with your API key:
 
 ```php
 require 'vendor/autoload.php';
@@ -21,7 +21,7 @@ use LingoDotDev\Sdk\LingoDotDevEngine;
 
 $engine = new LingoDotDevEngine([
     'apiKey' => 'your-api-key',       // replace with your actual key
-    'engineId' => 'your-engine-id',   // replace with your actual engine id
+    'engineId' => 'your-engine-id',   // optional — override the default engine
 ]);
 ```
 
@@ -30,7 +30,7 @@ $engine = new LingoDotDevEngine([
 | Option | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `apiKey` | string | Yes | — | Your Lingo.dev API key |
-| `engineId` | string | Yes | — | Your Lingo.dev Engine ID |
+| `engineId` | string | No | — | Your Lingo.dev Engine ID |
 | `apiUrl` | string | No | `https://api.lingo.dev` | API base URL |
 | `batchSize` | int | No | `25` | Max items per chunk (1–250) |
 | `idealBatchItemSize` | int | No | `250` | Max words per chunk (1–2500) |
@@ -84,10 +84,10 @@ Follow these steps to create a new PHP project that uses the Lingo.dev SDK:
 
 use LingoDotDev\Sdk\LingoDotDevEngine;
 
-// Initialize the SDK with your API key and Engine ID
+// Initialize the SDK with your API key
 $engine = new LingoDotDevEngine([
     'apiKey' => 'your-api-key',
-    'engineId' => 'your-engine-id',
+    'engineId' => 'your-engine-id',   // optional
 ]);
 ```
 
@@ -102,17 +102,6 @@ $localizedText = $engine->localizeText('Hello, world!', [
     'targetLocale' => 'es',
 ]);
 // Output: "¡Hola, mundo!"
-```
-
-You can enable fast mode for quicker (but potentially lower quality) translations:
-
-```php
-// Localize with fast mode enabled
-$localizedText = $engine->localizeText('Hello, world!', [
-    'sourceLocale' => 'en',
-    'targetLocale' => 'es',
-    'fast' => true,
-]);
 ```
 
 ### Object Localization
@@ -228,13 +217,13 @@ $engine->localizeText('Hello, world!', [
 
 ## Demo App
 
-If you prefer to start with a minimal example instead of the detailed scenarios above, create **index.php** in an empty folder, copy the following snippet, install dependencies with `composer require lingodotdev/sdk`, set `LINGODOTDEV_API_KEY` and `LINGODOTDEV_ENGINE_ID`, and run `php index.php`.
+If you prefer to start with a minimal example instead of the detailed scenarios above, create **index.php** in an empty folder, copy the following snippet, install dependencies with `composer require lingodotdev/sdk`, set `LINGODOTDEV_API_KEY` (and optionally `LINGODOTDEV_ENGINE_ID`), and run `php index.php`.
 
 Want to see everything in action?
 
 1. Clone this repository or copy the `index.php` from the **demo** below into an empty directory.
 2. Run `composer install` to pull in the SDK.
-3. Populate the `LINGODOTDEV_API_KEY` and `LINGODOTDEV_ENGINE_ID` environment variables.
+3. Populate the `LINGODOTDEV_API_KEY` environment variable (and optionally `LINGODOTDEV_ENGINE_ID`).
 4. Execute the script with `php index.php` and observe the output.
 
 `index.php` demo:
@@ -246,10 +235,13 @@ require 'vendor/autoload.php';
 
 use LingoDotDev\Sdk\LingoDotDevEngine;
 
-$engine = new LingoDotDevEngine([
+$config = [
     'apiKey' => getenv('LINGODOTDEV_API_KEY'),
-    'engineId' => getenv('LINGODOTDEV_ENGINE_ID'),
-]);
+];
+if (getenv('LINGODOTDEV_ENGINE_ID')) {
+    $config['engineId'] = getenv('LINGODOTDEV_ENGINE_ID');
+}
+$engine = new LingoDotDevEngine($config);
 
 // 1. Text
 $helloEs = $engine->localizeText('Hello world!', [

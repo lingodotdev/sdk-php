@@ -67,10 +67,6 @@ class LingoDotDevEngine
             throw new \InvalidArgumentException('API key is required');
         }
 
-        if (empty($this->config['engineId'])) {
-            throw new \InvalidArgumentException('Engine ID is required');
-        }
-
         if (!filter_var($this->config['apiUrl'], FILTER_VALIDATE_URL)) {
             throw new \InvalidArgumentException('API URL must be a valid URL');
         }
@@ -160,7 +156,7 @@ class LingoDotDevEngine
     private function _localizeChunk(?string $sourceLocale, string $targetLocale, array $payload, bool $fast): array
     {
         try {
-            $url = '/process/' . $this->config['engineId'] . '/localize';
+            $url = '/process/localize';
             $requestBody = [
                 'params' => ['fast' => $fast],
                 'sourceLocale' => $sourceLocale,
@@ -168,6 +164,10 @@ class LingoDotDevEngine
                 'data' => $payload['data'],
                 'sessionId' => $this->_sessionId,
             ];
+
+            if (!empty($this->config['engineId'])) {
+                $requestBody['engineId'] = $this->config['engineId'];
+            }
 
             if (isset($payload['reference']) && $payload['reference'] !== null) {
                 if (!is_array($payload['reference'])) {

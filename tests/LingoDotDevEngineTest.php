@@ -114,15 +114,16 @@ class LingoDotDevEngineTest extends TestCase
     }
 
     /**
-     * Tests constructor requires engineId
+     * Tests constructor works without engineId
      *
      * @return void
      */
-    public function testConstructorRequiresEngineId()
+    public function testConstructorWithoutEngineId()
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Engine ID is required');
-        new LingoDotDevEngine(['apiKey' => 'test-api-key']);
+        $engine = new LingoDotDevEngine([
+            'apiKey' => 'test-api-key',
+        ]);
+        $this->assertInstanceOf(LingoDotDevEngine::class, $engine);
     }
 
     /**
@@ -497,7 +498,8 @@ class LingoDotDevEngineTest extends TestCase
         $request = $history[0]['request'];
 
         // Check URL
-        $this->assertStringContainsString('/process/my-engine/localize', $request->getUri()->getPath());
+        $this->assertStringContainsString('/process/localize', $request->getUri()->getPath());
+        $this->assertStringNotContainsString('/process/my-engine/localize', $request->getUri()->getPath());
 
         // Check body format
         $body = json_decode($request->getBody()->getContents(), true);
@@ -507,10 +509,60 @@ class LingoDotDevEngineTest extends TestCase
         $this->assertEquals(['text' => 'Hello'], $body['data']);
         $this->assertArrayHasKey('sessionId', $body);
         $this->assertNotEmpty($body['sessionId']);
+        $this->assertEquals('my-engine', $body['engineId']);
 
         // vNext should NOT have workflowId or locale object
         $this->assertArrayNotHasKey('workflowId', $body['params']);
         $this->assertArrayNotHasKey('locale', $body);
+    }
+
+    /**
+     * Tests localize chunk URL and body format without engineId
+     *
+     * @return void
+     */
+    public function testLocalizeChunkUrlAndBodyWithoutEngineId()
+    {
+        $history = [];
+        $mock = new MockHandler([
+            new Response(200, [], json_encode(['data' => ['text' => 'Hola']]))
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $handlerStack->push(\GuzzleHttp\Middleware::history($history));
+
+        $engine = new LingoDotDevEngine([
+            'apiKey' => 'test-api-key',
+        ]);
+
+        $client = new Client([
+            'handler' => $handlerStack,
+            'headers' => [
+                'Content-Type' => 'application/json; charset=utf-8',
+                'X-API-Key' => 'test-api-key'
+            ]
+        ]);
+
+        $reflection = new ReflectionClass($engine);
+        $property = $reflection->getProperty('_httpClient');
+        $property->setAccessible(true);
+        $property->setValue($engine, $client);
+
+        $engine->localizeText('Hello', [
+            'sourceLocale' => 'en',
+            'targetLocale' => 'es',
+        ]);
+
+        $this->assertCount(1, $history);
+        $request = $history[0]['request'];
+
+        // Check URL is /process/localize
+        $this->assertStringContainsString('/process/localize', $request->getUri()->getPath());
+
+        // Check body omits engineId
+        $body = json_decode($request->getBody()->getContents(), true);
+        $this->assertArrayNotHasKey('engineId', $body);
+        $this->assertEquals('en', $body['sourceLocale']);
+        $this->assertEquals('es', $body['targetLocale']);
     }
 
     /**

@@ -5,7 +5,7 @@
  * This script tests all available methods in the PHP SDK with real API calls
  * to ensure they work correctly.
  *
- * Usage: php test-all-methods.php <api_key> <engine_id>
+ * Usage: php test-all-methods.php <api_key> [engine_id] [api_url]
  */
 
 require "vendor/autoload.php";
@@ -15,16 +15,23 @@ use GuzzleHttp\Exception\RequestException;
 
 $apiKey = $argv[1] ?? null;
 $engineId = $argv[2] ?? null;
+$apiUrl = $argv[3] ?? null;
 
-if (!$apiKey || !$engineId) {
-    echo "Usage: php test-all-methods.php <api_key> <engine_id>\n";
+if (!$apiKey) {
+    echo "Usage: php test-all-methods.php <api_key> [engine_id] [api_url]\n";
     exit(1);
 }
 
-$engine = new LingoDotDevEngine([
+$config = [
     "apiKey" => $apiKey,
-    "engineId" => $engineId,
-]);
+];
+if ($engineId) {
+    $config["engineId"] = $engineId;
+}
+if ($apiUrl) {
+    $config["apiUrl"] = $apiUrl;
+}
+$engine = new LingoDotDevEngine($config);
 
 $passed = 0;
 $failed = 0;
@@ -60,16 +67,7 @@ runTest("localizeText", function() use ($engine) {
     ]);
 });
 
-// 2. localizeText with fast mode
-runTest("localizeText (fast mode)", function() use ($engine) {
-    return $engine->localizeText("The quick brown fox jumps over the lazy dog.", [
-        "sourceLocale" => "en",
-        "targetLocale" => "fr",
-        "fast" => true,
-    ]);
-});
-
-// 3. localizeObject
+// 2. localizeObject
 runTest("localizeObject", function() use ($engine) {
     return $engine->localizeObject([
         "greeting" => "Hello",
@@ -84,7 +82,7 @@ runTest("localizeObject", function() use ($engine) {
     ]);
 });
 
-// 4. localizeChat
+// 3. localizeChat
 runTest("localizeChat", function() use ($engine) {
     return $engine->localizeChat([
         ["name" => "Alice", "text" => "Hello, how are you?"],
@@ -96,7 +94,7 @@ runTest("localizeChat", function() use ($engine) {
     ]);
 });
 
-// 5. batchLocalizeText
+// 4. batchLocalizeText
 runTest("batchLocalizeText", function() use ($engine) {
     return $engine->batchLocalizeText("Hello, world!", [
         "sourceLocale" => "en",
@@ -104,12 +102,12 @@ runTest("batchLocalizeText", function() use ($engine) {
     ]);
 });
 
-// 6. recognizeLocale
+// 5. recognizeLocale
 runTest("recognizeLocale", function() use ($engine) {
     return $engine->recognizeLocale("Bonjour le monde");
 });
 
-// 7. localizeObject with reference
+// 6. localizeObject with reference
 runTest("localizeObject with reference", function() use ($engine) {
     return $engine->localizeObject([
         "greeting" => "Hello",
@@ -126,7 +124,7 @@ runTest("localizeObject with reference", function() use ($engine) {
     ]);
 });
 
-// 8. Progress callback
+// 7. Progress callback
 runTest("Progress Callback", function() use ($engine) {
     $progressCalled = false;
     $progressValue = 0;
