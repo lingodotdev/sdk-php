@@ -20,9 +20,20 @@ require 'vendor/autoload.php';
 use LingoDotDev\Sdk\LingoDotDevEngine;
 
 $engine = new LingoDotDevEngine([
-    'apiKey' => 'your-api-key', // replace with your actual key
+    'apiKey' => 'your-api-key',       // replace with your actual key
+    'engineId' => 'your-engine-id',   // optional — override the default engine
 ]);
 ```
+
+### Configuration Options
+
+| Option | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `apiKey` | string | Yes | — | Your Lingo.dev API key |
+| `engineId` | string | No | — | Your Lingo.dev Engine ID |
+| `apiUrl` | string | No | `https://api.lingo.dev` | API base URL |
+| `batchSize` | int | No | `25` | Max items per chunk (1–250) |
+| `idealBatchItemSize` | int | No | `250` | Max words per chunk (1–2500) |
 
 ### Scenarios demonstrated in this README
 
@@ -38,7 +49,6 @@ $engine = new LingoDotDevEngine([
 - PHP 8.1 or higher
 - Composer
 - GuzzleHttp Client
-- Respect Validation
 
 ## Getting Started
 
@@ -77,6 +87,7 @@ use LingoDotDev\Sdk\LingoDotDevEngine;
 // Initialize the SDK with your API key
 $engine = new LingoDotDevEngine([
     'apiKey' => 'your-api-key',
+    'engineId' => 'your-engine-id',   // optional
 ]);
 ```
 
@@ -120,6 +131,21 @@ $localizedObject = $engine->localizeObject([
     ]
 ]
 */
+```
+
+You can pass a reference to provide additional context:
+
+```php
+// Localize with reference for additional context
+$localizedObject = $engine->localizeObject([
+    'greeting' => 'Hello',
+], [
+    'sourceLocale' => 'en',
+    'targetLocale' => 'es',
+    'reference' => [
+        'fr' => ['greeting' => 'Bonjour']
+    ],
+]);
 ```
 
 ### Chat Localization
@@ -184,20 +210,20 @@ Track the progress of a localization operation:
 $engine->localizeText('Hello, world!', [
     'sourceLocale' => 'en',
     'targetLocale' => 'es',
-], function ($progress, $chunk, $processedChunk) {
+], function ($progress) {
     echo "Localization progress: $progress%\n";
 });
 ```
 
 ## Demo App
 
-If you prefer to start with a minimal example instead of the detailed scenarios above, create **index.php** in an empty folder, copy the following snippet, install dependencies with `composer require lingodotdev/sdk`, set `LINGODOTDEV_API_KEY`, and run `php index.php`.
+If you prefer to start with a minimal example instead of the detailed scenarios above, create **index.php** in an empty folder, copy the following snippet, install dependencies with `composer require lingodotdev/sdk`, set `LINGODOTDEV_API_KEY` (and optionally `LINGODOTDEV_ENGINE_ID`), and run `php index.php`.
 
 Want to see everything in action?
 
 1. Clone this repository or copy the `index.php` from the **demo** below into an empty directory.
 2. Run `composer install` to pull in the SDK.
-3. Populate the `LINGODOTDEV_API_KEY` environment variable with your key.
+3. Populate the `LINGODOTDEV_API_KEY` environment variable (and optionally `LINGODOTDEV_ENGINE_ID`).
 4. Execute the script with `php index.php` and observe the output.
 
 `index.php` demo:
@@ -209,24 +235,26 @@ require 'vendor/autoload.php';
 
 use LingoDotDev\Sdk\LingoDotDevEngine;
 
-$engine = new LingoDotDevEngine([
+$config = [
     'apiKey' => getenv('LINGODOTDEV_API_KEY'),
-]);
+];
+if (getenv('LINGODOTDEV_ENGINE_ID')) {
+    $config['engineId'] = getenv('LINGODOTDEV_ENGINE_ID');
+}
+$engine = new LingoDotDevEngine($config);
 
 // 1. Text
 $helloEs = $engine->localizeText('Hello world!', [
     'sourceLocale' => 'en',
     'targetLocale' => 'es',
 ]);
-
-echo "Text ES ⇒ $helloEs\n\n";
+echo "Text ES: $helloEs\n\n";
 
 // 2. Object
-$object = [
+$objectFr = $engine->localizeObject([
     'greeting' => 'Good morning',
     'farewell' => 'Good night',
-];
-$objectFr = $engine->localizeObject($object, [
+], [
     'sourceLocale' => 'en',
     'targetLocale' => 'fr',
 ]);
@@ -244,7 +272,6 @@ print_r($chatJa);
 
 // 4. Detect language
 $lang = $engine->recognizeLocale('Ciao mondo');
-
 echo "Detected: $lang\n";
 ```
 
